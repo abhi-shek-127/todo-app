@@ -161,7 +161,10 @@ const updateTodo = async (req, res) => {
     if (description !== undefined) todo.description = description.trim();
     if (completed !== undefined) todo.completed = Boolean(completed);
     if (priority !== undefined) todo.priority = priority;
-    if (dueDate !== undefined) todo.dueDate = dueDate ? new Date(dueDate) : null;
+    if (dueDate !== undefined) {
+      todo.dueDate = dueDate ? new Date(dueDate) : null;
+      todo.reminderSent = false; // Reset reminder so updated date triggers reminders
+    }
 
     const updatedTodo = await todo.save();
 
@@ -248,10 +251,69 @@ const deleteTodo = async (req, res) => {
   }
 };
 
+// @desc    Send on-demand email reminder for a task
+// @route   POST /api/todos/:id/remind
+// @access  Private
+const sendManualReminder = async (req, res) => {
+  try {
+    const { sendTaskReminderEmail } = require('../services/emailService');
+
+    const todo = await Todo.findOne({
+      _id: req.params.id,
+      user: req.user._id,
+    });
+
+    if (!todo) {
+      return res.status(404).json({
+        success: false,
+        message: 'Todo not found or unauthorized access',
+      });
+    }
+
+    const result = await sendTaskReminderEmail({
+      to: req.user.email,
+      name: req.user.name,
+      taskTitle: todo.title,
+      description: todo.description,
+      dueDate: todo.dueDate,
+      priority: todo.priority,
+    });
+
+    todo.reminderSent = true;
+    await todo.save();
+
+    // Record activity
+    try {
+      await Activity.create({
+        user: req.user._id,
+        action: 'UPDATED',
+        todoTitle: todo.title,
+        todoId: todo._id,
+        details: `Reminder email sent to ${req.user.email}`,
+      });
+    } catch (actErr) {
+      // ignore
+    }
+
+    res.json({
+      success: true,
+      message: `Reminder email successfully sent to ${req.user.email}`,
+      previewUrl: result?.previewUrl || null,
+    });
+  } catch (error) {
+    console.error('Send reminder error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Server error sending reminder email',
+    });
+  }
+};
+
 module.exports = {
   getTodos,
   getTodoById,
   createTodo,
   updateTodo,
   deleteTodo,
+  sendManualReminder,
 };

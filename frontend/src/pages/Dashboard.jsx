@@ -136,6 +136,21 @@ const Dashboard = ({ user, onLogout }) => {
     }
   };
 
+  // Send manual reminder email
+  const handleSendReminder = async (todo) => {
+    try {
+      showNotification(`Sending reminder email for "${todo.title}"...`, 'info');
+      const result = await todoService.sendReminder(todo._id);
+      showNotification(result.message || `Reminder email sent!`);
+      if (result.previewUrl) {
+        window.open(result.previewUrl, '_blank');
+      }
+      await fetchActivities();
+    } catch (err) {
+      showNotification(err.message || 'Failed to send reminder email', 'error');
+    }
+  };
+
   // Computed metrics
   const totalTasks = todos.length;
   const completedTasks = todos.filter((t) => t.completed).length;
@@ -254,6 +269,7 @@ const Dashboard = ({ user, onLogout }) => {
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             onDelete={handleDeleteTodo}
+            onSendReminder={handleSendReminder}
             filters={filters}
             onFilterChange={setFilters}
           />

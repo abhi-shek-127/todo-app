@@ -2,12 +2,16 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const connectDB = require('./config/database');
+const { initReminderScheduler } = require('./services/reminderScheduler');
 
 // Load environment variables
 dotenv.config();
 
 // Connect to Database
 connectDB();
+
+// Start background email reminder scheduler
+initReminderScheduler();
 
 const app = express();
 

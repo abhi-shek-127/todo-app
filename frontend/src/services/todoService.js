@@ -87,6 +87,20 @@ export const todoService = {
     }
     return data;
   },
+
+  // Send email reminder on demand
+  async sendReminder(id) {
+    const response = await fetch(`${API_URL}/todos/${id}/remind`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to send reminder email');
+    }
+    return data;
+  },
 };
 
 export default todoService;

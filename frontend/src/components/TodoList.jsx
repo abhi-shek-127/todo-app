@@ -7,6 +7,7 @@ const TodoList = ({
   onToggleComplete,
   onEdit,
   onDelete,
+  onSendReminder,
   filters,
   onFilterChange,
 }) => {
@@ -147,6 +148,7 @@ const TodoList = ({
               onToggleComplete={onToggleComplete}
               onEdit={onEdit}
               onDelete={onDelete}
+              onSendReminder={onSendReminder}
             />
           ))
         )}

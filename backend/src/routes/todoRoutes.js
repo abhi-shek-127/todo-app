@@ -6,6 +6,7 @@ const {
   createTodo,
   updateTodo,
   deleteTodo,
+  sendManualReminder,
 } = require('../controllers/todoController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -20,5 +21,8 @@ router.route('/:id')
   .get(getTodoById)
   .put(updateTodo)
   .delete(deleteTodo);
+
+// Send reminder email on demand
+router.post('/:id/remind', sendManualReminder);
 
 module.exports = router;

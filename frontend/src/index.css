@@ -325,6 +325,11 @@ button, input, textarea, select {
   color: #ffffff;
 }
 
+.toast-info {
+  background: #3b82f6;
+  color: #ffffff;
+}
+
 /* Cards & Layout */
 .card {
   background: var(--card-bg);
@@ -887,6 +892,11 @@ button, input, textarea, select {
 
 .action-icon-btn.edit-btn:hover {
   color: var(--primary);
+}
+
+.action-icon-btn.remind-btn:hover {
+  color: #d97706;
+  background: #fffbeb;
 }
 
 .action-icon-btn.delete-btn:hover {

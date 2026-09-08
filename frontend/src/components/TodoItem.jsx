@@ -7,9 +7,10 @@ import {
   Edit3,
   Calendar,
   AlertTriangle,
+  Bell,
 } from 'lucide-react';
 
-const TodoItem = ({ todo, onToggleComplete, onEdit, onDelete }) => {
+const TodoItem = ({ todo, onToggleComplete, onEdit, onDelete, onSendReminder }) => {
   const isOverdue = () => {
     if (!todo.dueDate || todo.completed) return false;
     const due = new Date(todo.dueDate);
@@ -85,6 +86,16 @@ const TodoItem = ({ todo, onToggleComplete, onEdit, onDelete }) => {
 
       {/* Action Buttons */}
       <div className="todo-actions">
+        {!todo.completed && onSendReminder && (
+          <button
+            type="button"
+            className="action-icon-btn remind-btn"
+            onClick={() => onSendReminder(todo)}
+            title="Send email reminder now"
+          >
+            <Bell size={17} />
+          </button>
+        )}
         <button
           type="button"
           className="action-icon-btn edit-btn"
