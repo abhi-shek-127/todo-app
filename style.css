@@ -1,0 +1,169 @@
+/* ===================== GLOBAL ===================== */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f0f4f8;
+    color: #2b2b2b;
+    line-height: 1.6;
+}
+
+/* ===================== HEADER ===================== */
+header {
+    background-color: #1a237e;
+    color: #ffffff;
+    text-align: center;
+    padding: 24px 20px;
+}
+
+header h1 {
+    font-size: 1.8rem;
+}
+
+/* ===================== MAIN ===================== */
+main {
+    max-width: 600px;
+    margin: 30px auto;
+    padding: 0 16px;
+}
+
+/* ===================== INPUT SECTION ===================== */
+.input-section {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.input-section input {
+    flex: 1;
+    padding: 10px 14px;
+    font-size: 0.97rem;
+    border: 2px solid #c5cae9;
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.input-section input:focus {
+    border-color: #3949ab;
+}
+
+.input-section button {
+    padding: 10px 20px;
+    background-color: #1a237e;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.97rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    white-space: nowrap;
+}
+
+.input-section button:hover {
+    background-color: #283593;
+}
+
+/* ===================== LIST SECTION ===================== */
+.list-section {
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 20px 22px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.10);
+    min-height: 80px;
+}
+
+/* ===================== EMPTY MESSAGE ===================== */
+.empty-msg {
+    color: #9e9e9e;
+    font-style: italic;
+    text-align: center;
+    padding: 16px 0;
+    font-size: 0.97rem;
+}
+
+/* ===================== TASK LIST ===================== */
+#taskList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+/* ===================== TASK ITEM ===================== */
+.task-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 0;
+    border-bottom: 1px solid #e8eaf6;
+}
+
+.task-item:last-child {
+    border-bottom: none;
+}
+
+.task-text {
+    flex: 1;
+    font-size: 0.97rem;
+    color: #1a1a1a;
+    transition: color 0.2s;
+}
+
+/* ===================== COMPLETED STATE ===================== */
+.task-item.completed .task-text {
+    text-decoration: line-through;
+    color: #9e9e9e;
+}
+
+.task-item.completed .btn-complete {
+    background-color: #2e7d32;
+    cursor: default;
+}
+
+/* ===================== TASK BUTTONS ===================== */
+.btn-complete,
+.btn-delete {
+    padding: 6px 14px;
+    border: none;
+    border-radius: 5px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+    white-space: nowrap;
+}
+
+.btn-complete {
+    background-color: #1565c0;
+    color: #ffffff;
+}
+
+.btn-complete:hover {
+    background-color: #0d47a1;
+    transform: translateY(-1px);
+}
+
+.btn-delete {
+    background-color: #c62828;
+    color: #ffffff;
+}
+
+.btn-delete:hover {
+    background-color: #b71c1c;
+    transform: translateY(-1px);
+}
+
+/* ===================== FOOTER ===================== */
+footer {
+    text-align: center;
+    padding: 16px;
+    background: #1a237e;
+    color: #c5cae9;
+    font-size: 0.85rem;
+    margin-top: 30px;
+}
