@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Activity,
   PlusCircle,
@@ -10,7 +10,22 @@ import {
   Trash,
 } from 'lucide-react';
 
-const ActivityList = ({ activities = [], onClearActivities, loading }) => {
+const ActivityList = ({ activities = [], onClearActivities, onDeleteSelected, loading }) => {
+  const [selected, setSelected] = useState(new Set());
+
+  // Clear selection whenever the activities list changes (after deletion)
+  useEffect(() => { setSelected(new Set()); }, [activities]);
+
+  const toggleOne = (id) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const allChecked = activities.length > 0 && selected.size === activities.length;
+  const toggleAll = () =>
+    setSelected(allChecked ? new Set() : new Set(activities.map((a) => a._id)));
   const getActionConfig = (action) => {
     switch (action) {
       case 'CREATED':
@@ -78,16 +93,28 @@ const ActivityList = ({ activities = [], onClearActivities, loading }) => {
           <span className="activity-count">{activities.length}</span>
         </div>
 
-        {activities.length > 0 && (
-          <button
-            type="button"
-            className="clear-activity-btn"
-            onClick={onClearActivities}
-            title="Clear all activity history"
-          >
-            <Trash size={13} /> Clear
-          </button>
-        )}
+        <div className="activity-header-actions">
+          {selected.size > 0 && (
+            <button
+              type="button"
+              className="delete-selected-btn"
+              onClick={() => onDeleteSelected(Array.from(selected))}
+              title={`Delete ${selected.size} selected`}
+            >
+              <Trash2 size={13} /> Delete ({selected.size})
+            </button>
+          )}
+          {activities.length > 0 && (
+            <button
+              type="button"
+              className="clear-activity-btn"
+              onClick={onClearActivities}
+              title="Clear all activity history"
+            >
+              <Trash size={13} /> Clear All
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="activity-timeline">
@@ -101,10 +128,35 @@ const ActivityList = ({ activities = [], onClearActivities, loading }) => {
           </div>
         ) : (
           <div className="timeline-items">
+            {/* Select-all row */}
+            <div className="activity-select-all-row">
+              <label className="activity-checkbox-label">
+                <input
+                  type="checkbox"
+                  className="activity-checkbox"
+                  checked={allChecked}
+                  onChange={toggleAll}
+                />
+                <span>{allChecked ? 'Deselect all' : 'Select all'}</span>
+              </label>
+            </div>
+
             {activities.map((act) => {
               const config = getActionConfig(act.action);
+              const isSelected = selected.has(act._id);
               return (
-                <div key={act._id} className="timeline-item">
+                <div
+                  key={act._id}
+                  className={`timeline-item ${isSelected ? 'timeline-item-selected' : ''}`}
+                  onClick={() => toggleOne(act._id)}
+                >
+                  <input
+                    type="checkbox"
+                    className="activity-checkbox"
+                    checked={isSelected}
+                    onChange={() => toggleOne(act._id)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
                   <div className="timeline-icon-box">{config.icon}</div>
                   <div className="timeline-content">
                     <div className="timeline-top">

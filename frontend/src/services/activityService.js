@@ -24,6 +24,18 @@ export const activityService = {
     return data.data || [];
   },
 
+  // Delete selected activities by IDs
+  async deleteSelected(ids) {
+    const response = await fetch(`${API_URL}/activities/selected`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ ids }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Failed to delete selected activities');
+    return data;
+  },
+
   // Clear user activity history
   async clearActivities() {
     const response = await fetch(`${API_URL}/activities`, {

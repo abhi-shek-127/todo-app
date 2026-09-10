@@ -971,6 +971,12 @@ button, input, textarea, select {
   border-radius: var(--radius-full);
 }
 
+.activity-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .clear-activity-btn {
   background: none;
   border: none;
@@ -980,10 +986,75 @@ button, input, textarea, select {
   display: flex;
   align-items: center;
   gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: color 0.15s;
 }
 
 .clear-activity-btn:hover {
   color: var(--danger);
+}
+
+.delete-selected-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: rgba(239,68,68,0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239,68,68,0.25);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.delete-selected-btn:hover {
+  background: #ef4444;
+  color: #fff;
+}
+
+/* Select-all row */
+.activity-select-all-row {
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--border);
+  margin-bottom: 4px;
+}
+.activity-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Checkboxes on each item */
+.activity-checkbox {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--primary);
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.timeline-item {
+  cursor: pointer;
+  border-radius: 8px;
+  padding: 4px 6px;
+  margin: 0 -6px;
+  transition: background 0.12s ease;
+}
+.timeline-item:hover {
+  background: #f8fafc;
+}
+.timeline-item-selected {
+  background: #eef2ff;
+}
+.timeline-item-selected:hover {
+  background: #e0e7ff;
 }
 
 .activity-timeline {

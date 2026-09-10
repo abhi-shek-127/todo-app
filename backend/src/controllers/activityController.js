@@ -45,7 +45,25 @@ const clearActivities = async (req, res) => {
   }
 };
 
+// @desc    Delete selected activities by IDs
+// @route   DELETE /api/activities/selected
+// @access  Private
+const deleteSelected = async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ success: false, message: 'No activity IDs provided' });
+    }
+    await Activity.deleteMany({ _id: { $in: ids }, user: req.user._id });
+    res.json({ success: true, message: 'Selected activities deleted' });
+  } catch (error) {
+    console.error('Delete selected activities error:', error);
+    res.status(500).json({ success: false, message: error.message || 'Server error' });
+  }
+};
+
 module.exports = {
   getActivities,
   clearActivities,
+  deleteSelected,
 };

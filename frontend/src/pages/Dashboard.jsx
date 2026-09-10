@@ -203,6 +203,23 @@ const Dashboard = ({ user, onLogout }) => {
     });
   };
 
+  // Delete selected activities
+  const handleDeleteSelected = (ids) => {
+    askConfirm(
+      'Delete Selected',
+      `Remove ${ids.length} selected ${ids.length === 1 ? 'entry' : 'entries'} from the activity log?`,
+      async () => {
+        try {
+          await activityService.deleteSelected(ids);
+          showNotification(`${ids.length} ${ids.length === 1 ? 'entry' : 'entries'} deleted`);
+          await fetchActivities();
+        } catch (err) {
+          showNotification(err.message || 'Failed to delete selected activities', 'error');
+        }
+      }
+    );
+  };
+
   // Send manual reminder email
   const handleSendReminder = async (todo) => {
     try {
@@ -391,6 +408,7 @@ const Dashboard = ({ user, onLogout }) => {
           <ActivityList
             activities={activities}
             onClearActivities={handleClearActivities}
+            onDeleteSelected={handleDeleteSelected}
             loading={loadingActivities}
           />
         </div>
