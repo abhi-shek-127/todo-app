@@ -1,37 +1,16 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-let cachedTransporter = null;
+let resendClient = null;
 
-// Pre-warm transporter on module load for instant first delivery
-const getTransporter = () => {
-  if (cachedTransporter) return cachedTransporter;
-
-  if (process.env.SMTP_USER && process.env.SMTP_PASS) {
-    // pool:true reuses SMTP connection — much faster than reconnecting each time
-    cachedTransporter = nodemailer.createTransport({
-      pool: true,
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: parseInt(process.env.SMTP_PORT, 10) || 587,
-      secure: false,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-      maxConnections: 5,
-      maxMessages: 100,
-      rateDelta: 1000,
-      rateLimit: 5,
-    });
-    // Verify connection immediately so first send has no handshake delay
-    cachedTransporter.verify((err) => {
-      if (err) console.warn('[EmailService] SMTP verify failed:', err.message);
-      else console.log('[EmailService] SMTP pool ready — fast delivery enabled');
-    });
-    return cachedTransporter;
+const getResend = () => {
+  if (resendClient) return resendClient;
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('[EmailService] RESEND_API_KEY not set');
+    return null;
   }
-
-  console.warn('[EmailService] No SMTP credentials configured');
-  return null;
+  resendClient = new Resend(process.env.RESEND_API_KEY);
+  console.log('[EmailService] Resend client ready — HTTP delivery enabled');
+  return resendClient;
 };
 
 const PRIORITY_META = {
@@ -42,9 +21,9 @@ const PRIORITY_META = {
 
 const sendTaskReminderEmail = async ({ to, name, taskTitle, description, dueDate, priority, appUrl }) => {
   try {
-    const transporter = getTransporter();
-    if (!transporter) {
-      console.warn('[EmailService] Transporter unavailable, skipping email delivery.');
+    const resend = getResend();
+    if (!resend) {
+      console.warn('[EmailService] Resend client unavailable, skipping email delivery.');
       return null;
     }
 
@@ -145,16 +124,20 @@ const sendTaskReminderEmail = async ({ to, name, taskTitle, description, dueDate
 
     const text = `Hi ${name || 'there'},\n\n${isOverdue ? 'OVERDUE' : 'REMINDER'}: ${taskTitle}\nPriority: ${priority.toUpperCase()}\n${formattedDate ? `Due: ${formattedDate}\n` : ''}${description ? `\n${description}\n` : ''}\nOpen app: ${appLink}\n\n— TaskMaster`;
 
-    const info = await transporter.sendMail({
-      from: process.env.SMTP_FROM || `"TaskMaster" <${process.env.SMTP_USER}>`,
-      to,
+    const fromAddress = process.env.RESEND_FROM || 'TaskMaster <onboarding@resend.dev>';
+
+    const { data, error } = await resend.emails.send({
+      from: fromAddress,
+      to: [to],
       subject: `${p.emoji} ${isOverdue ? '[OVERDUE]' : 'Reminder:'} ${taskTitle}`,
       text,
       html,
     });
 
-    console.log(`[EmailService] ✅ Sent to ${to} — ${info.messageId}`);
-    return { success: true, messageId: info.messageId };
+    if (error) throw new Error(error.message);
+
+    console.log(`[EmailService] ✅ Sent to ${to} — ${data.id}`);
+    return { success: true, messageId: data.id };
   } catch (error) {
     console.error('[EmailService] ❌ Failed:', error.message);
     throw error;
