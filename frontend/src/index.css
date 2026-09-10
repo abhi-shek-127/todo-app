@@ -1425,6 +1425,18 @@ button, input, textarea, select {
    RESPONSIVE & PWA IMPROVEMENTS
    ============================================= */
 
+/* Solid fallback for browsers without backdrop-filter support
+   (Firefox < 103, Chrome < 76, older Android WebView) */
+@supports not (backdrop-filter: blur(1px)) {
+  .dashboard-nav,
+  .mobile-bottom-nav { background: #ffffff !important; }
+  .auth-card         { background: #ffffff !important; }
+}
+@supports not (-webkit-backdrop-filter: blur(1px)) {
+  .dashboard-nav,
+  .mobile-bottom-nav { background: #ffffff; }
+}
+
 /* Hide mobile-only elements on desktop */
 .mobile-bottom-nav { display: none; }
 .mobile-fab        { display: none; }
@@ -1526,6 +1538,7 @@ button, input, textarea, select {
   .dashboard-container {
     padding: 0 0 72px;
     max-width: 100%;
+    min-height: 100vh;
     min-height: 100svh;
   }
 
@@ -1568,6 +1581,7 @@ button, input, textarea, select {
   /* Activity panel fills screen on mobile */
   .activity-panel {
     max-height: none;
+    min-height: calc(100vh - 200px);
     min-height: calc(100svh - 200px);
   }
 
