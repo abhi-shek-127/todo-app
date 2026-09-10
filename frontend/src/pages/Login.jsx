@@ -52,15 +52,16 @@ const Login = ({ onLoginSuccess, onNavigateToRegister, onForgotPassword }) => {
         {/* Form */}
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
-            <label className="input-label">Email Address</label>
+            <label className="input-label">Email or Username</label>
             <div className="input-icon-wrapper">
               <Mail size={18} className="input-left-icon" />
               <input
-                type="email"
+                type="text"
                 className="form-control with-left-icon"
-                placeholder="you@example.com"
+                placeholder="you@example.com or yourname"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                autoComplete="username"
                 required
                 disabled={loading}
               />

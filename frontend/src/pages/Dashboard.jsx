@@ -17,6 +17,8 @@ import {
   Activity,
 } from 'lucide-react';
 import Logo from '../components/Logo';
+import ProfileModal from '../components/ProfileModal';
+import UsernameSetupModal from '../components/UsernameSetupModal';
 import TodoForm from '../components/TodoForm';
 import TodoList from '../components/TodoList';
 import ActivityList from '../components/ActivityList';
@@ -34,7 +36,7 @@ const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 const isStandalone =
   window.matchMedia('(display-mode: standalone)').matches || !!navigator.standalone;
 
-const Dashboard = ({ user, onLogout }) => {
+const Dashboard = ({ user, onLogout, onUserUpdate }) => {
   const [todos, setTodos] = useState([]);
   const [activities, setActivities] = useState([]);
   const [editingTodo, setEditingTodo] = useState(null);
@@ -47,6 +49,14 @@ const Dashboard = ({ user, onLogout }) => {
   const [showIOSBanner, setShowIOSBanner] = useState(false);
   const [mobileTab, setMobileTab] = useState('tasks');
   const mainColRef = useRef(null);
+  const [showProfile, setShowProfile] = useState(false);
+  const [showUsernameSetup, setShowUsernameSetup] = useState(!user?.username);
+
+  const handleUsernameSuccess = (newUsername) => {
+    setShowUsernameSetup(false);
+    onUserUpdate?.({ username: newUsername });
+    showNotification(`Username @${newUsername} saved!`);
+  };
 
   const handleFAB = () => {
     setMobileTab('tasks');
@@ -286,15 +296,20 @@ const Dashboard = ({ user, onLogout }) => {
         </div>
 
         <div className="nav-user-actions">
-          <div className="user-profile-tag">
-            <div className="avatar-circle">
-              <User size={16} />
+          <button
+            type="button"
+            className="user-profile-tag user-profile-btn"
+            onClick={() => setShowProfile(true)}
+            title="View profile"
+          >
+            <div className="avatar-circle avatar-initials">
+              {(user?.name || 'U').split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)}
             </div>
             <div className="user-info-text">
               <span className="user-name">{user?.name || 'User'}</span>
-              <span className="user-email">{user?.email || ''}</span>
+              <span className="user-email">{user?.username ? `@${user.username}` : user?.email || ''}</span>
             </div>
-          </div>
+          </button>
 
           {!isStandalone && (installPrompt || isIOS) && (
             <button
@@ -468,6 +483,24 @@ const Dashboard = ({ user, onLogout }) => {
           <span>Activity</span>
         </button>
       </nav>
+
+      {/* Profile Modal */}
+      {showProfile && (
+        <ProfileModal
+          user={user}
+          todos={todos}
+          onClose={() => setShowProfile(false)}
+          onLogout={onLogout}
+        />
+      )}
+
+      {/* Username Setup Modal for existing users */}
+      {showUsernameSetup && (
+        <UsernameSetupModal
+          onClose={() => setShowUsernameSetup(false)}
+          onSuccess={handleUsernameSuccess}
+        />
+      )}
 
       {/* Custom Confirm Dialog */}
       {confirmDialog.open && (

@@ -1,7 +1,12 @@
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const User = require('../models/User');
+const Todo = require('../models/Todo');
+const Activity = require('../models/Activity');
+const PushSubscription = require('../models/PushSubscription');
 const { sendPasswordResetEmail } = require('../services/emailService');
+
+const USERNAME_RE = /^[a-z0-9_]+$/;
 
 // Helper to generate JWT
 const generateToken = (id) => {
@@ -15,13 +20,29 @@ const generateToken = (id) => {
 // @access  Public
 const register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, username } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({
         success: false,
         message: 'Please provide all required fields: name, email, and password',
       });
+    }
+
+    // Validate username
+    const cleanUsername = username ? username.toLowerCase().trim() : '';
+    if (!cleanUsername) {
+      return res.status(400).json({ success: false, message: 'Username is required' });
+    }
+    if (!USERNAME_RE.test(cleanUsername)) {
+      return res.status(400).json({ success: false, message: 'Username can only contain lowercase letters, numbers, and underscores' });
+    }
+    if (cleanUsername.length > 8) {
+      return res.status(400).json({ success: false, message: 'Username cannot exceed 8 characters' });
+    }
+    const usernameTaken = await User.findOne({ username: cleanUsername });
+    if (usernameTaken) {
+      return res.status(400).json({ success: false, message: 'Username is already taken' });
     }
 
     if (password.length < 6) {
@@ -43,6 +64,7 @@ const register = async (req, res) => {
       name,
       email: email.toLowerCase(),
       password,
+      username: cleanUsername,
     });
 
     if (user) {
@@ -52,6 +74,7 @@ const register = async (req, res) => {
           _id: user._id,
           name: user.name,
           email: user.email,
+          username: user.username,
           token: generateToken(user._id),
         },
       });
@@ -75,16 +98,20 @@ const register = async (req, res) => {
 // @access  Public
 const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    // Accept either `identifier` (email or username) or legacy `email` field
+    const identifier = (req.body.identifier || req.body.email || '').trim().toLowerCase();
+    const { password } = req.body;
 
-    if (!email || !password) {
+    if (!identifier || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide both email and password',
+        message: 'Please provide your email/username and password',
       });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const user = await User.findOne({
+      $or: [{ email: identifier }, { username: identifier }],
+    });
 
     if (user && (await user.matchPassword(password))) {
       res.json({
@@ -93,6 +120,7 @@ const login = async (req, res) => {
           _id: user._id,
           name: user.name,
           email: user.email,
+          username: user.username || null,
           token: generateToken(user._id),
         },
       });
@@ -197,10 +225,68 @@ const resetPassword = async (req, res) => {
   }
 };
 
+// @desc    Check if a username is available
+// @route   POST /api/auth/check-username
+// @access  Public
+const checkUsername = async (req, res) => {
+  try {
+    const raw = (req.body.username || '').toLowerCase().trim();
+    if (!raw) return res.json({ available: false, message: 'Username is required' });
+    if (!USERNAME_RE.test(raw)) return res.json({ available: false, message: 'Only a-z, 0-9, and _ allowed' });
+    if (raw.length > 8) return res.json({ available: false, message: 'Max 8 characters' });
+    const exists = await User.findOne({ username: raw });
+    res.json({ available: !exists, message: exists ? 'Username is taken' : 'Available!' });
+  } catch (error) {
+    res.status(500).json({ available: false, message: 'Server error' });
+  }
+};
+
+// @desc    Set or update username for the logged-in user
+// @route   PATCH /api/auth/set-username
+// @access  Private
+const setUsername = async (req, res) => {
+  try {
+    const raw = (req.body.username || '').toLowerCase().trim();
+    if (!raw || !USERNAME_RE.test(raw) || raw.length > 8) {
+      return res.status(400).json({ success: false, message: 'Invalid username format' });
+    }
+    const conflict = await User.findOne({ username: raw, _id: { $ne: req.user._id } });
+    if (conflict) return res.status(400).json({ success: false, message: 'Username is already taken' });
+
+    req.user.username = raw;
+    await req.user.save({ validateBeforeSave: false });
+    res.json({ success: true, data: { username: req.user.username } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message || 'Server error' });
+  }
+};
+
+// @desc    Permanently delete account and all associated data
+// @route   DELETE /api/auth/account
+// @access  Private
+const deleteAccount = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    await Promise.all([
+      Todo.deleteMany({ user: userId }),
+      Activity.deleteMany({ user: userId }),
+      PushSubscription.deleteMany({ user: userId }),
+      User.deleteOne({ _id: userId }),
+    ]);
+    res.json({ success: true, message: 'Account permanently deleted' });
+  } catch (error) {
+    console.error('Delete account error:', error);
+    res.status(500).json({ success: false, message: error.message || 'Server error' });
+  }
+};
+
 module.exports = {
   register,
   login,
   getMe,
   forgotPassword,
   resetPassword,
+  checkUsername,
+  setUsername,
+  deleteAccount,
 };

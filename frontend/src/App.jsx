@@ -70,7 +70,15 @@ export const App = () => {
   return (
     <div className="app-root">
       {user ? (
-        <Dashboard user={user} onLogout={handleLogout} />
+        <Dashboard
+          user={user}
+          onLogout={handleLogout}
+          onUserUpdate={(updates) => {
+            const updated = { ...user, ...updates };
+            setUser(updated);
+            authService.setUser(updated);
+          }}
+        />
       ) : authView === 'login' ? (
         <Login
           onLoginSuccess={(u) => setUser(u)}

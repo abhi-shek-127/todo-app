@@ -1675,3 +1675,310 @@ button, input, textarea, select {
     box-shadow: 0 2px 10px rgba(79,70,229,0.35);
   }
 }
+
+/* =============================================
+   USERNAME AVAILABILITY HINT
+   ============================================= */
+.input-label-hint {
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-left: 2px;
+}
+
+.username-hint {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.78rem;
+  margin-top: 5px;
+  padding: 0 2px;
+}
+
+.username-hint-available { color: var(--success); }
+.username-hint-taken     { color: var(--danger); }
+.username-hint-checking  { color: var(--text-muted); }
+
+.form-control.username-available { border-color: var(--success); }
+.form-control.username-taken     { border-color: var(--danger); }
+.form-control.username-checking  { border-color: var(--warning); }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 0.8s linear infinite; display: inline-flex; }
+
+/* =============================================
+   MODAL OVERLAY (shared)
+   ============================================= */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  backdrop-filter: blur(4px);
+}
+
+@supports not (backdrop-filter: blur(4px)) {
+  .modal-overlay { background: rgba(15, 23, 42, 0.78); }
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s, background 0.15s;
+}
+.modal-close-btn:hover { color: var(--text-main); background: var(--border); }
+
+/* =============================================
+   PROFILE MODAL
+   ============================================= */
+.profile-modal {
+  position: relative;
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 420px;
+  padding: 28px 24px 24px;
+  animation: modal-in 0.2s ease;
+}
+
+@keyframes modal-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.profile-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.profile-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #4338ca);
+  color: white;
+  font-size: 1.6rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 1px;
+  flex-shrink: 0;
+}
+
+.profile-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.profile-username-badge {
+  font-size: 0.82rem;
+  color: var(--primary);
+  background: var(--primary-light);
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+  font-weight: 600;
+}
+
+.profile-info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 18px;
+}
+
+.profile-info-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.profile-info-row svg { flex-shrink: 0; color: var(--secondary); }
+
+/* Stats strip */
+.profile-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.profile-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  background: var(--bg-main);
+  border-radius: var(--radius-md);
+  padding: 10px 6px;
+}
+
+.profile-stat-icon { color: var(--text-muted); }
+.profile-stat-icon.done    { color: var(--success); }
+.profile-stat-icon.pending { color: var(--warning); }
+.profile-stat-icon.high    { color: var(--danger); }
+
+.profile-stat-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1;
+}
+
+.profile-stat-label {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Danger zone */
+.profile-danger-zone {
+  border: 1px solid #fca5a5;
+  border-radius: var(--radius-md);
+  padding: 16px;
+  background: #fff5f5;
+}
+
+.danger-zone-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--danger);
+  margin-bottom: 6px;
+}
+
+.danger-zone-desc {
+  font-size: 0.8rem;
+  color: #b91c1c;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.danger-confirm-input {
+  margin-bottom: 10px;
+  font-size: 0.88rem;
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+.btn-danger:hover:not(:disabled) { background: #dc2626; }
+.btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* =============================================
+   USERNAME SETUP MODAL (existing users)
+   ============================================= */
+.username-setup-modal {
+  position: relative;
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 380px;
+  padding: 32px 24px 24px;
+  animation: modal-in 0.2s ease;
+}
+
+.username-setup-header {
+  text-align: center;
+  margin-bottom: 22px;
+}
+
+.username-setup-icon-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--primary-light);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 14px;
+}
+
+.username-setup-header h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--text-main);
+}
+
+.username-setup-header p {
+  font-size: 0.83rem;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.username-setup-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+  align-items: center;
+}
+
+.btn-ghost {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-ghost:hover { background: var(--bg-main); color: var(--text-main); }
+
+/* =============================================
+   PROFILE BUTTON in nav
+   ============================================= */
+.user-profile-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s;
+}
+.user-profile-btn:hover { background: var(--bg-main); }
+
+.avatar-initials {
+  background: linear-gradient(135deg, #6366f1, #4338ca);
+  color: white;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}

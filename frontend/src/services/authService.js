@@ -17,52 +17,69 @@ export const authService = {
   setUser: (user) => localStorage.setItem('todo_user_data', JSON.stringify(user)),
 
   // Register new user
-  async register(name, email, password) {
+  async register(name, email, password, username) {
     const response = await fetch(`${API_URL}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ name, email, password, username }),
     });
-
     const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.message || 'Registration failed');
-    }
-
-    if (data.data && data.data.token) {
+    if (!response.ok) throw new Error(data.message || 'Registration failed');
+    if (data.data?.token) {
       this.setToken(data.data.token);
-      this.setUser({
-        _id: data.data._id,
-        name: data.data.name,
-        email: data.data.email,
-      });
+      this.setUser({ _id: data.data._id, name: data.data.name, email: data.data.email, username: data.data.username });
     }
-
     return data;
   },
 
-  // Login existing user
-  async login(email, password) {
+  // Login with email or username
+  async login(identifier, password) {
     const response = await fetch(`${API_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ identifier, password }),
     });
-
     const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.message || 'Login failed');
-    }
-
-    if (data.data && data.data.token) {
+    if (!response.ok) throw new Error(data.message || 'Login failed');
+    if (data.data?.token) {
       this.setToken(data.data.token);
-      this.setUser({
-        _id: data.data._id,
-        name: data.data.name,
-        email: data.data.email,
-      });
+      this.setUser({ _id: data.data._id, name: data.data.name, email: data.data.email, username: data.data.username });
     }
+    return data;
+  },
 
+  // Check if a username is available
+  async checkUsername(username) {
+    const response = await fetch(`${API_URL}/auth/check-username`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username }),
+    });
+    return response.json();
+  },
+
+  // Set username for logged-in user
+  async setUsername(username) {
+    const token = this.getToken();
+    const response = await fetch(`${API_URL}/auth/set-username`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ username }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Failed to set username');
+    return data;
+  },
+
+  // Delete account permanently
+  async deleteAccount() {
+    const token = this.getToken();
+    const response = await fetch(`${API_URL}/auth/account`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Failed to delete account');
     return data;
   },
 
