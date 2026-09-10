@@ -1,16 +1,29 @@
-const { Resend } = require('resend');
-
-let resendClient = null;
-
-const getResend = () => {
-  if (resendClient) return resendClient;
-  if (!process.env.RESEND_API_KEY) {
-    console.warn('[EmailService] RESEND_API_KEY not set');
+// Brevo (formerly Sendinblue) — HTTP API, works on Render free tier, sends to any recipient
+const sendViaBrevo = async ({ to, toName, from, fromName, subject, html, text }) => {
+  if (!process.env.BREVO_API_KEY) {
+    console.warn('[EmailService] BREVO_API_KEY not set');
     return null;
   }
-  resendClient = new Resend(process.env.RESEND_API_KEY);
-  console.log('[EmailService] Resend client ready — HTTP delivery enabled');
-  return resendClient;
+
+  const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'api-key': process.env.BREVO_API_KEY,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify({
+      sender: { name: fromName || 'TaskMaster', email: from || process.env.BREVO_SENDER_EMAIL },
+      to: [{ email: to, name: toName || to }],
+      subject,
+      htmlContent: html,
+      textContent: text,
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || 'Brevo API error');
+  return data;
 };
 
 const PRIORITY_META = {
@@ -21,11 +34,6 @@ const PRIORITY_META = {
 
 const sendTaskReminderEmail = async ({ to, name, taskTitle, description, dueDate, priority, appUrl }) => {
   try {
-    const resend = getResend();
-    if (!resend) {
-      console.warn('[EmailService] Resend client unavailable, skipping email delivery.');
-      return null;
-    }
 
     const p = PRIORITY_META[priority] || PRIORITY_META.medium;
     const appLink = appUrl || process.env.APP_URL || 'https://todo-app-7ddz.onrender.com';
@@ -124,20 +132,18 @@ const sendTaskReminderEmail = async ({ to, name, taskTitle, description, dueDate
 
     const text = `Hi ${name || 'there'},\n\n${isOverdue ? 'OVERDUE' : 'REMINDER'}: ${taskTitle}\nPriority: ${priority.toUpperCase()}\n${formattedDate ? `Due: ${formattedDate}\n` : ''}${description ? `\n${description}\n` : ''}\nOpen app: ${appLink}\n\n— TaskMaster`;
 
-    const fromAddress = process.env.RESEND_FROM || 'TaskMaster <onboarding@resend.dev>';
-
-    const { data, error } = await resend.emails.send({
-      from: fromAddress,
-      to: [to],
+    const result = await sendViaBrevo({
+      to,
+      toName: name,
+      from: process.env.BREVO_SENDER_EMAIL,
+      fromName: 'TaskMaster',
       subject: `${p.emoji} ${isOverdue ? '[OVERDUE]' : 'Reminder:'} ${taskTitle}`,
-      text,
       html,
+      text,
     });
 
-    if (error) throw new Error(error.message);
-
-    console.log(`[EmailService] ✅ Sent to ${to} — ${data.id}`);
-    return { success: true, messageId: data.id };
+    console.log(`[EmailService] ✅ Sent to ${to} via Brevo — ${result?.messageId}`);
+    return { success: true, messageId: result?.messageId };
   } catch (error) {
     console.error('[EmailService] ❌ Failed:', error.message);
     throw error;
