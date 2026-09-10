@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Mail, CheckCircle2, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Mail, AlertCircle, ArrowLeft } from 'lucide-react';
+import Logo from '../components/Logo';
 import authService from '../services/authService';
 
 const ForgotPassword = ({ onBack }) => {
@@ -28,7 +29,7 @@ const ForgotPassword = ({ onBack }) => {
       <div className="auth-card">
         <div className="auth-header">
           <div className="brand-logo">
-            <CheckCircle2 size={32} className="brand-icon" />
+            <Logo size={52} />
           </div>
           <h2 className="auth-title">{sent ? 'Check Your Email' : 'Forgot Password?'}</h2>
           <p className="auth-subtitle">

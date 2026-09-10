@@ -99,11 +99,8 @@ button, input, textarea, select {
 }
 
 .brand-logo {
-  display: inline-flex;
-  padding: 12px;
-  background: var(--primary-light);
-  color: var(--primary);
-  border-radius: var(--radius-md);
+  display: flex;
+  justify-content: center;
   margin-bottom: 16px;
 }
 
@@ -343,6 +340,7 @@ button, input, textarea, select {
   max-width: 1280px;
   margin: 0 auto;
   padding: 24px 20px 60px;
+  min-height: 100vh;
 }
 
 /* Navigation Header */
@@ -936,7 +934,7 @@ button, input, textarea, select {
 .activity-panel {
   display: flex;
   flex-direction: column;
-  max-height: 780px;
+  max-height: calc(100vh - 180px);
 }
 
 .activity-header {
@@ -1332,4 +1330,245 @@ button, input, textarea, select {
 @keyframes slideUp {
   from { transform: translateY(12px); opacity: 0; }
   to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* =============================================
+   RESPONSIVE & PWA IMPROVEMENTS
+   ============================================= */
+
+/* Hide mobile-only elements on desktop */
+.mobile-bottom-nav { display: none; }
+.mobile-fab        { display: none; }
+
+/* Safe-area insets for iOS notch / home indicator */
+@supports (padding: max(0px)) {
+  .dashboard-nav {
+    padding-left:  max(20px, env(safe-area-inset-left));
+    padding-right: max(20px, env(safe-area-inset-right));
+  }
+  @media (max-width: 640px) {
+    .dashboard-nav { padding-top: max(12px, env(safe-area-inset-top)); }
+    .mobile-bottom-nav { padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+  }
+  .auth-wrapper {
+    padding-top:    max(24px, env(safe-area-inset-top));
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+  }
+}
+
+/* PWA standalone mode — sticky nav with glass blur */
+@media (display-mode: standalone) {
+  .dashboard-nav {
+    position: sticky;
+    top: 0;
+    z-index: 200;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0;
+  }
+}
+
+/* ---- DESKTOP (≥ 1024px) ---- */
+@media (min-width: 1024px) {
+  .dashboard-container { padding: 0 32px 48px; }
+  .dashboard-nav {
+    padding: 20px 32px;
+    margin-bottom: 28px;
+  }
+  .metrics-grid { margin-top: 28px; }
+
+  /* Auth split screen */
+  .auth-wrapper {
+    background: linear-gradient(145deg, #1e1b4b 0%, #312e81 45%, #4f46e5 100%);
+    padding: 0;
+    justify-content: center;
+  }
+  .auth-card {
+    box-shadow: 0 32px 80px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.99);
+  }
+}
+
+/* ---- TABLET (641–1023px) ---- */
+@media (max-width: 1023px) and (min-width: 641px) {
+  .nav-version { display: none; }
+  .user-email  { display: none; }
+  .dashboard-container { padding: 16px 16px 48px; }
+}
+
+/* ---- MOBILE (≤ 640px) ---- */
+@media (max-width: 640px) {
+
+  /* Sticky glassy nav */
+  .dashboard-nav {
+    position: sticky;
+    top: 0;
+    z-index: 200;
+    background: rgba(255,255,255,0.96);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0;
+    padding: 10px 14px;
+  }
+
+  /* Compact nav brand */
+  .nav-title    { font-size: 1.1rem; }
+  .nav-version  { display: none; }
+  .user-email   { display: none; }
+  .user-profile-tag { padding: 5px 10px; gap: 6px; }
+  .nav-user-actions { gap: 8px; }
+
+  /* Icon-only buttons in nav on mobile */
+  .push-btn span,
+  .install-btn span,
+  .logout-btn span { display: none; }
+  .push-btn, .install-btn {
+    padding: 8px;
+    min-width: 36px;
+    justify-content: center;
+  }
+  .logout-btn { padding: 8px 10px; }
+
+  /* Main container — full bleed, space for bottom nav */
+  .dashboard-container {
+    padding: 0 0 72px;
+    max-width: 100%;
+    min-height: 100svh;
+  }
+
+  /* iOS banner */
+  .ios-install-banner {
+    margin: 12px 12px 4px;
+    border-radius: 10px;
+  }
+
+  /* Metrics — 2×2 grid */
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    padding: 14px 12px 0;
+    margin-bottom: 14px;
+  }
+  .metric-card    { padding: 14px 12px; gap: 10px; }
+  .metric-icon-box { width: 36px; height: 36px; }
+  .metric-value   { font-size: 1.3rem; }
+  .metric-label   { font-size: 0.73rem; }
+
+  /* Dashboard grid — tab switching */
+  .dashboard-grid { gap: 0; }
+  .dashboard-grid[data-mobile-tab="tasks"]    .sidebar-col     { display: none; }
+  .dashboard-grid[data-mobile-tab="activity"] .main-content-col { display: none; }
+  .dashboard-grid[data-mobile-tab="activity"] .sidebar-col     { display: flex; }
+
+  /* Cards — seamless full-width */
+  .card {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    box-shadow: none;
+    margin-bottom: 8px;
+    padding: 18px 14px;
+  }
+  .main-content-col { gap: 0; }
+
+  /* Activity panel fills screen on mobile */
+  .activity-panel {
+    max-height: none;
+    min-height: calc(100svh - 200px);
+  }
+
+  /* Toast — bottom of screen above tab bar */
+  .notification-toast {
+    top: auto;
+    bottom: 76px;
+    right: 12px;
+    left: 12px;
+    font-size: 0.87rem;
+    border-radius: 10px;
+  }
+
+  /* Controls bar */
+  .controls-bar { flex-direction: column; gap: 8px; }
+  .search-box   { min-width: 0; }
+  .filter-dropdowns { gap: 8px; }
+  .custom-select { font-size: 0.82rem; }
+
+  /* Status tabs — horizontal scroll */
+  .status-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 10px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .status-tabs::-webkit-scrollbar { display: none; }
+  .status-tab { white-space: nowrap; font-size: 0.84rem; }
+
+  /* Auth pages — tighter on small screens */
+  .auth-wrapper { padding: 16px; align-items: flex-start; padding-top: 40px; }
+  .auth-card    { padding: 24px 18px; border-radius: var(--radius-md); }
+  .auth-title   { font-size: 1.3rem; }
+
+  /* ---- BOTTOM TAB BAR ---- */
+  .mobile-bottom-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(255,255,255,0.97);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid var(--border);
+    height: 60px;
+    z-index: 300;
+    box-shadow: 0 -2px 16px rgba(0,0,0,0.06);
+  }
+
+  .mobile-tab-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    flex: 1;
+    background: none;
+    border: none;
+    padding: 6px 8px;
+    color: var(--text-muted);
+    font-size: 0.67rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color 0.15s ease;
+  }
+  .mobile-tab-btn.active { color: var(--primary); }
+
+  /* ---- FLOATING ACTION BUTTON ---- */
+  .mobile-fab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 18px rgba(79,70,229,0.45);
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    flex-shrink: 0;
+    position: relative;
+    bottom: 8px;
+  }
+  .mobile-fab:active {
+    transform: scale(0.93);
+    box-shadow: 0 2px 10px rgba(79,70,229,0.35);
+  }
 }

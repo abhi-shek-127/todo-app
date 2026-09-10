@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Lock, Eye, EyeOff, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import Logo from '../components/Logo';
 import authService from '../services/authService';
 
 const ResetPassword = ({ token, onSuccess }) => {
@@ -34,7 +35,7 @@ const ResetPassword = ({ token, onSuccess }) => {
       <div className="auth-card">
         <div className="auth-header">
           <div className="brand-logo">
-            <CheckCircle2 size={32} className="brand-icon" />
+            <Logo size={52} />
           </div>
           <h2 className="auth-title">{done ? 'Password Reset!' : 'Set New Password'}</h2>
           <p className="auth-subtitle">

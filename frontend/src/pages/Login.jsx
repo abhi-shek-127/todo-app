@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { LogIn, Mail, Lock, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { LogIn, Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import Logo from '../components/Logo';
 import authService from '../services/authService';
 
 const Login = ({ onLoginSuccess, onNavigateToRegister, onForgotPassword }) => {
@@ -34,7 +35,7 @@ const Login = ({ onLoginSuccess, onNavigateToRegister, onForgotPassword }) => {
         {/* Brand Header */}
         <div className="auth-header">
           <div className="brand-logo">
-            <CheckCircle2 size={32} className="brand-icon" />
+            <Logo size={52} />
           </div>
           <h2 className="auth-title">Welcome Back</h2>
           <p className="auth-subtitle">Sign in to manage your tasks and monitor your productivity</p>

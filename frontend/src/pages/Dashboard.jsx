@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  CheckCircle2,
   Clock,
   AlertCircle,
   LogOut,
@@ -14,7 +13,10 @@ import {
   Download,
   Share2,
   Trash2,
+  Plus,
+  Activity,
 } from 'lucide-react';
+import Logo from '../components/Logo';
 import TodoForm from '../components/TodoForm';
 import TodoList from '../components/TodoList';
 import ActivityList from '../components/ActivityList';
@@ -43,6 +45,13 @@ const Dashboard = ({ user, onLogout }) => {
   const [pushLoading, setPushLoading] = useState(false);
   const [installPrompt, setInstallPrompt] = useState(null);
   const [showIOSBanner, setShowIOSBanner] = useState(false);
+  const [mobileTab, setMobileTab] = useState('tasks');
+  const mainColRef = useRef(null);
+
+  const handleFAB = () => {
+    setMobileTab('tasks');
+    setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 30);
+  };
   const [confirmDialog, setConfirmDialog] = useState({ open: false, title: '', message: '', onConfirm: null });
 
   const askConfirm = (title, message, onConfirm) =>
@@ -246,9 +255,7 @@ const Dashboard = ({ user, onLogout }) => {
       {/* Navigation Header */}
       <header className="dashboard-nav">
         <div className="nav-brand">
-          <div className="brand-badge">
-            <CheckCircle2 size={24} className="brand-badge-icon" />
-          </div>
+          <Logo size={36} />
           <div>
             <h1 className="nav-title">TaskMaster</h1>
             <span className="nav-version">Personal Productivity Workspace</span>
@@ -378,9 +385,9 @@ const Dashboard = ({ user, onLogout }) => {
       </div>
 
       {/* Main Content Layout */}
-      <div className="dashboard-grid">
+      <div className="dashboard-grid" data-mobile-tab={mobileTab}>
         {/* Left / Center Column: Task Management */}
-        <div className="main-content-col">
+        <div className="main-content-col" ref={mainColRef}>
           {/* Add / Edit Form */}
           <TodoForm
             onSaveTodo={handleSaveTodo}
@@ -413,6 +420,29 @@ const Dashboard = ({ user, onLogout }) => {
           />
         </div>
       </div>
+
+      {/* Mobile Bottom Tab Bar */}
+      <nav className="mobile-bottom-nav" aria-label="Main navigation">
+        <button
+          type="button"
+          className={`mobile-tab-btn ${mobileTab === 'tasks' ? 'active' : ''}`}
+          onClick={() => setMobileTab('tasks')}
+        >
+          <ListTodo size={22} />
+          <span>Tasks</span>
+        </button>
+        <button type="button" className="mobile-fab" onClick={handleFAB} aria-label="Add task">
+          <Plus size={24} />
+        </button>
+        <button
+          type="button"
+          className={`mobile-tab-btn ${mobileTab === 'activity' ? 'active' : ''}`}
+          onClick={() => setMobileTab('activity')}
+        >
+          <Activity size={22} />
+          <span>Activity</span>
+        </button>
+      </nav>
 
       {/* Custom Confirm Dialog */}
       {confirmDialog.open && (

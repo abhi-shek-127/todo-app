@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { UserPlus, User, Mail, Lock, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { UserPlus, User, Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import Logo from '../components/Logo';
 import authService from '../services/authService';
 
 const Register = ({ onRegisterSuccess, onNavigateToLogin }) => {
@@ -46,7 +47,7 @@ const Register = ({ onRegisterSuccess, onNavigateToLogin }) => {
         {/* Brand Header */}
         <div className="auth-header">
           <div className="brand-logo">
-            <CheckCircle2 size={32} className="brand-icon" />
+            <Logo size={52} />
           </div>
           <h2 className="auth-title">Create an Account</h2>
           <p className="auth-subtitle">Join TaskMaster to organize, prioritize, and complete your tasks</p>
