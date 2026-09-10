@@ -31,6 +31,14 @@ const todoSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    lastReminderSentAt: {
+      type: Date,
+      default: null,
+    },
+    mutedUntil: {
+      type: Date,
+      default: null,
+    },
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',

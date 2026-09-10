@@ -311,6 +311,94 @@ const sendManualReminder = async (req, res) => {
   }
 };
 
+const MUTE_DURATIONS = {
+  '10min':  10 * 60 * 1000,
+  '30min':  30 * 60 * 1000,
+  '1hour':   1 * 60 * 60 * 1000,
+  '2hours':  2 * 60 * 60 * 1000,
+  '4hours':  4 * 60 * 60 * 1000,
+  '8hours':  8 * 60 * 60 * 1000,
+  '1day':   24 * 60 * 60 * 1000,
+};
+
+// @desc    Mute or unmute notifications for a task
+// @route   PATCH /api/todos/:id/mute
+// @access  Private
+const muteTask = async (req, res) => {
+  try {
+    const todo = await Todo.findOne({ _id: req.params.id, user: req.user._id });
+    if (!todo) return res.status(404).json({ success: false, message: 'Todo not found' });
+
+    const { muteFor } = req.body; // null to unmute
+
+    if (!muteFor) {
+      todo.mutedUntil = null;
+    } else {
+      const ms = MUTE_DURATIONS[muteFor];
+      if (!ms) return res.status(400).json({ success: false, message: 'Invalid mute duration' });
+      todo.mutedUntil = new Date(Date.now() + ms);
+    }
+
+    await todo.save();
+
+    try {
+      await Activity.create({
+        user: req.user._id,
+        action: 'UPDATED',
+        todoTitle: todo.title,
+        todoId: todo._id,
+        details: muteFor ? `Notifications muted for ${muteFor}` : 'Notifications unmuted',
+      });
+    } catch (_) {}
+
+    res.json({ success: true, data: todo });
+  } catch (error) {
+    console.error('Mute task error:', error);
+    res.status(500).json({ success: false, message: error.message || 'Server error' });
+  }
+};
+
+// @desc    Shift due date forward or backward by N days
+// @route   PATCH /api/todos/:id/shift-due
+// @access  Private
+const shiftDue = async (req, res) => {
+  try {
+    const { days } = req.body; // positive = postpone, negative = prepone
+    if (!days || typeof days !== 'number') {
+      return res.status(400).json({ success: false, message: 'Provide days as a number' });
+    }
+
+    const todo = await Todo.findOne({ _id: req.params.id, user: req.user._id });
+    if (!todo) return res.status(404).json({ success: false, message: 'Todo not found' });
+    if (!todo.dueDate) return res.status(400).json({ success: false, message: 'Task has no due date to shift' });
+
+    const newDate = new Date(todo.dueDate);
+    newDate.setDate(newDate.getDate() + days);
+    todo.dueDate = newDate;
+    todo.lastReminderSentAt = null; // reset so reminders fire for the new date
+    todo.reminderSent = false;
+    await todo.save();
+
+    const action = days > 0 ? 'Postponed' : 'Preponed';
+    const absDays = Math.abs(days);
+
+    try {
+      await Activity.create({
+        user: req.user._id,
+        action: 'UPDATED',
+        todoTitle: todo.title,
+        todoId: todo._id,
+        details: `${action} "${todo.title}" by ${absDays} day${absDays !== 1 ? 's' : ''} → new due: ${newDate.toLocaleDateString()}`,
+      });
+    } catch (_) {}
+
+    res.json({ success: true, data: todo });
+  } catch (error) {
+    console.error('Shift due error:', error);
+    res.status(500).json({ success: false, message: error.message || 'Server error' });
+  }
+};
+
 module.exports = {
   getTodos,
   getTodoById,
@@ -318,4 +406,6 @@ module.exports = {
   updateTodo,
   deleteTodo,
   sendManualReminder,
+  muteTask,
+  shiftDue,
 };

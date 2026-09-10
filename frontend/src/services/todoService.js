@@ -88,6 +88,30 @@ export const todoService = {
     return data;
   },
 
+  // Mute notifications for a task (muteFor = '10min'|'30min'|...|'1day', null to unmute)
+  async muteTask(id, muteFor) {
+    const response = await fetch(`${API_URL}/todos/${id}/mute`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ muteFor }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Failed to mute task');
+    return data.data;
+  },
+
+  // Shift due date by days (positive = postpone, negative = prepone)
+  async shiftDue(id, days) {
+    const response = await fetch(`${API_URL}/todos/${id}/shift-due`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ days }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Failed to shift due date');
+    return data.data;
+  },
+
   // Send email reminder on demand
   async sendReminder(id) {
     const response = await fetch(`${API_URL}/todos/${id}/remind`, {

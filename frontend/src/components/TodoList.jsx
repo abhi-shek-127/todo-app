@@ -8,6 +8,8 @@ const TodoList = ({
   onEdit,
   onDelete,
   onSendReminder,
+  onMute,
+  onShiftDue,
   filters,
   onFilterChange,
 }) => {
@@ -149,6 +151,8 @@ const TodoList = ({
               onEdit={onEdit}
               onDelete={onDelete}
               onSendReminder={onSendReminder}
+              onMute={onMute}
+              onShiftDue={onShiftDue}
             />
           ))
         )}

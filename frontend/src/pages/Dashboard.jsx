@@ -229,6 +229,29 @@ const Dashboard = ({ user, onLogout }) => {
     );
   };
 
+  // Mute notifications for a task
+  const handleMute = async (todo, muteFor) => {
+    try {
+      await todoService.muteTask(todo._id, muteFor);
+      showNotification(muteFor ? `Notifications muted for ${muteFor}` : 'Notifications unmuted');
+      await fetchTodos();
+    } catch (err) {
+      showNotification(err.message || 'Failed to update mute', 'error');
+    }
+  };
+
+  // Shift due date ±1 day
+  const handleShiftDue = async (todo, days) => {
+    try {
+      await todoService.shiftDue(todo._id, days);
+      showNotification(days > 0 ? 'Task postponed by 1 day' : 'Task preponed by 1 day');
+      await fetchTodos();
+      await fetchActivities();
+    } catch (err) {
+      showNotification(err.message || 'Failed to shift due date', 'error');
+    }
+  };
+
   // Send manual reminder email
   const handleSendReminder = async (todo) => {
     try {
@@ -405,6 +428,8 @@ const Dashboard = ({ user, onLogout }) => {
             }}
             onDelete={handleDeleteTodo}
             onSendReminder={handleSendReminder}
+            onMute={handleMute}
+            onShiftDue={handleShiftDue}
             filters={filters}
             onFilterChange={setFilters}
           />

@@ -7,6 +7,8 @@ const {
   updateTodo,
   deleteTodo,
   sendManualReminder,
+  muteTask,
+  shiftDue,
 } = require('../controllers/todoController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -24,5 +26,11 @@ router.route('/:id')
 
 // Send reminder email on demand
 router.post('/:id/remind', sendManualReminder);
+
+// Mute / unmute notifications for a task
+router.patch('/:id/mute', muteTask);
+
+// Shift due date forward (postpone) or backward (prepone)
+router.patch('/:id/shift-due', shiftDue);
 
 module.exports = router;
