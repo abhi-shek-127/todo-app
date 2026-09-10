@@ -13,6 +13,7 @@ import {
   BellOff,
   Download,
   Share2,
+  Trash2,
 } from 'lucide-react';
 import TodoForm from '../components/TodoForm';
 import TodoList from '../components/TodoList';
@@ -42,6 +43,11 @@ const Dashboard = ({ user, onLogout }) => {
   const [pushLoading, setPushLoading] = useState(false);
   const [installPrompt, setInstallPrompt] = useState(null);
   const [showIOSBanner, setShowIOSBanner] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, title: '', message: '', onConfirm: null });
+
+  const askConfirm = (title, message, onConfirm) =>
+    setConfirmDialog({ open: true, title, message, onConfirm });
+  const closeConfirm = () => setConfirmDialog({ open: false, title: '', message: '', onConfirm: null });
 
   // Filters state
   const [filters, setFilters] = useState({
@@ -170,33 +176,31 @@ const Dashboard = ({ user, onLogout }) => {
   };
 
   // Delete todo
-  const handleDeleteTodo = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this task?')) {
-      return;
-    }
-    try {
-      await todoService.deleteTodo(id);
-      showNotification('Task deleted successfully');
-      if (editingTodo && editingTodo._id === id) {
-        setEditingTodo(null);
+  const handleDeleteTodo = (id) => {
+    askConfirm('Delete Task', 'This task will be permanently removed. This action cannot be undone.', async () => {
+      try {
+        await todoService.deleteTodo(id);
+        showNotification('Task deleted successfully');
+        if (editingTodo && editingTodo._id === id) setEditingTodo(null);
+        await fetchTodos();
+        await fetchActivities();
+      } catch (err) {
+        showNotification(err.message || 'Failed to delete task', 'error');
       }
-      await fetchTodos();
-      await fetchActivities();
-    } catch (err) {
-      showNotification(err.message || 'Failed to delete task', 'error');
-    }
+    });
   };
 
   // Clear activities
-  const handleClearActivities = async () => {
-    if (!window.confirm('Clear all activity logs?')) return;
-    try {
-      await activityService.clearActivities();
-      showNotification('Activity history cleared');
-      setActivities([]);
-    } catch (err) {
-      showNotification(err.message || 'Failed to clear activities', 'error');
-    }
+  const handleClearActivities = () => {
+    askConfirm('Clear Activity Log', 'All activity history will be erased. This cannot be undone.', async () => {
+      try {
+        await activityService.clearActivities();
+        showNotification('Activity history cleared');
+        setActivities([]);
+      } catch (err) {
+        showNotification(err.message || 'Failed to clear activities', 'error');
+      }
+    });
   };
 
   // Send manual reminder email
@@ -391,6 +395,31 @@ const Dashboard = ({ user, onLogout }) => {
           />
         </div>
       </div>
+
+      {/* Custom Confirm Dialog */}
+      {confirmDialog.open && (
+        <div className="confirm-overlay" onClick={closeConfirm}>
+          <div className="confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="confirm-icon-wrap">
+              <Trash2 size={22} />
+            </div>
+            <h3 className="confirm-title">{confirmDialog.title}</h3>
+            <p className="confirm-message">{confirmDialog.message}</p>
+            <div className="confirm-actions">
+              <button type="button" className="btn confirm-cancel-btn" onClick={closeConfirm}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn confirm-delete-btn"
+                onClick={() => { closeConfirm(); confirmDialog.onConfirm?.(); }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
