@@ -152,7 +152,6 @@ const sendTaskReminderEmail = async ({ to, name, taskTitle, description, dueDate
 
 const sendPasswordResetEmail = async ({ to, name, resetUrl }) => {
   try {
-    const resend = getResend ? null : null; // use Brevo
     const html = `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Reset Your Password</title></head>

@@ -1,8 +1,6 @@
-const CACHE_NAME = 'taskmaster-v1';
-const STATIC = ['/', '/index.html'];
+const CACHE_NAME = 'taskmaster-v2';
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE_NAME).then((c) => c.addAll(STATIC)));
   self.skipWaiting();
 });
 
@@ -17,6 +15,17 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET' || e.request.url.includes('/api/')) return;
+
+  // Always fetch HTML from network so the latest index.html with correct JS hashes is used.
+  // Fall back to cache only if offline.
+  if (e.request.mode === 'navigate') {
+    e.respondWith(
+      fetch(e.request).catch(() => caches.match(e.request))
+    );
+    return;
+  }
+
+  // Cache-first for everything else (icons, fonts, etc.)
   e.respondWith(caches.match(e.request).then((cached) => cached || fetch(e.request)));
 });
 
