@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { LogIn, Mail, Lock, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
 import authService from '../services/authService';
 
-const Login = ({ onLoginSuccess, onNavigateToRegister }) => {
+const Login = ({ onLoginSuccess, onNavigateToRegister, onForgotPassword }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -108,12 +108,13 @@ const Login = ({ onLoginSuccess, onNavigateToRegister }) => {
         {/* Footer */}
         <div className="auth-footer">
           <p>
+            <button type="button" className="link-btn" onClick={onForgotPassword}>
+              Forgot your password?
+            </button>
+          </p>
+          <p>
             Don't have an account?{' '}
-            <button
-              type="button"
-              className="link-btn"
-              onClick={onNavigateToRegister}
-            >
+            <button type="button" className="link-btn" onClick={onNavigateToRegister}>
               Create an account
             </button>
           </p>

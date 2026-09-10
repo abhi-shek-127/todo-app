@@ -150,6 +150,70 @@ const sendTaskReminderEmail = async ({ to, name, taskTitle, description, dueDate
   }
 };
 
+const sendPasswordResetEmail = async ({ to, name, resetUrl }) => {
+  try {
+    const resend = getResend ? null : null; // use Brevo
+    const html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reset Your Password</title></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:'Segoe UI',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:32px 16px;">
+<tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.10);">
+  <tr><td style="background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);padding:36px 40px;text-align:center;">
+    <div style="font-size:36px;margin-bottom:12px;">🔐</div>
+    <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:800;">Reset Your Password</h1>
+    <p style="margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:14px;">TaskMaster Account Security</p>
+  </td></tr>
+  <tr><td style="padding:36px 40px;">
+    <p style="margin:0 0 8px;font-size:18px;color:#1e293b;font-weight:600;">Hi ${name || 'there'} 👋</p>
+    <p style="margin:0 0 28px;font-size:15px;color:#64748b;line-height:1.6;">
+      We received a request to reset your TaskMaster password. Click the button below to set a new password.
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr><td align="center" style="padding-bottom:28px;">
+        <a href="${resetUrl}" style="display:inline-block;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;padding:14px 36px;border-radius:10px;">
+          Reset My Password →
+        </a>
+      </td></tr>
+    </table>
+    <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:14px 18px;margin-bottom:20px;">
+      <p style="margin:0;font-size:13px;color:#991b1b;">⚠️ This link expires in <strong>1 hour</strong>. If you didn't request this, ignore this email — your password will remain unchanged.</p>
+    </div>
+    <p style="margin:0;font-size:12px;color:#94a3b8;text-align:center;">
+      If the button doesn't work, copy this link:<br>
+      <a href="${resetUrl}" style="color:#4f46e5;word-break:break-all;">${resetUrl}</a>
+    </p>
+  </td></tr>
+  <tr><td style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:20px 40px;text-align:center;">
+    <p style="margin:0;font-size:12px;color:#94a3b8;">Sent by <strong style="color:#4f46e5;">TaskMaster</strong> — Your Productivity Companion</p>
+  </td></tr>
+</table>
+</td></tr>
+</table>
+</body></html>`;
+
+    const text = `Hi ${name || 'there'},\n\nReset your TaskMaster password:\n${resetUrl}\n\nThis link expires in 1 hour. If you didn't request this, ignore this email.\n\n— TaskMaster`;
+
+    await sendViaBrevo({
+      to,
+      toName: name,
+      from: process.env.BREVO_SENDER_EMAIL,
+      fromName: 'TaskMaster',
+      subject: '🔐 Reset Your TaskMaster Password',
+      html,
+      text,
+    });
+
+    console.log(`[EmailService] ✅ Password reset email sent to ${to}`);
+    return { success: true };
+  } catch (error) {
+    console.error('[EmailService] ❌ Failed to send reset email:', error.message);
+    throw error;
+  }
+};
+
 module.exports = {
   sendTaskReminderEmail,
+  sendPasswordResetEmail,
 };
