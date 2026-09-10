@@ -70,9 +70,9 @@ const checkAndSendReminders = async () => {
 };
 
 const initReminderScheduler = () => {
-  cron.schedule('*/15 * * * *', () => { checkAndSendReminders(); });
-  console.log('[ReminderScheduler] Background task reminder scheduler initialized (checks every 15m).');
-  setTimeout(() => { checkAndSendReminders(); }, 10000);
+  cron.schedule('* * * * *', () => { checkAndSendReminders(); });
+  console.log('[ReminderScheduler] Background task reminder scheduler initialized (checks every 1m).');
+  setTimeout(() => { checkAndSendReminders(); }, 5000);
 };
 
 module.exports = { initReminderScheduler, checkAndSendReminders };
