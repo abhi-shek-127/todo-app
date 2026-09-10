@@ -11,6 +11,9 @@ import {
   BellOff,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  Check,
 } from 'lucide-react';
 
 const MUTE_OPTIONS = [
@@ -23,11 +26,23 @@ const MUTE_OPTIONS = [
   { label: '1 day',   value: '1day' },
 ];
 
-const TodoItem = ({ todo, onToggleComplete, onEdit, onDelete, onSendReminder, onMute, onShiftDue }) => {
+const TodoItem = ({
+  todo,
+  onToggleComplete,
+  onEdit,
+  onDelete,
+  onSendReminder,
+  onMute,
+  onShiftDue,
+  onToggleSubtask,
+  bulkMode = false,
+  selected = false,
+  onBulkSelect,
+}) => {
   const [showMuteMenu, setShowMuteMenu] = useState(false);
+  const [showSubtasks, setShowSubtasks] = useState(false);
   const muteRef = useRef(null);
 
-  // Close mute dropdown on outside click
   useEffect(() => {
     if (!showMuteMenu) return;
     const handler = (e) => {
@@ -37,44 +52,52 @@ const TodoItem = ({ todo, onToggleComplete, onEdit, onDelete, onSendReminder, on
     return () => document.removeEventListener('mousedown', handler);
   }, [showMuteMenu]);
 
-  const isOverdue = () => {
-    if (!todo.dueDate || todo.completed) return false;
-    return new Date(todo.dueDate) < new Date();
-  };
+  const isOverdue = !todo.dueDate || todo.completed
+    ? false
+    : new Date(todo.dueDate) < new Date();
 
   const isMuted = !!(todo.mutedUntil && new Date(todo.mutedUntil) > new Date());
 
-  const formatDate = (dateString) => {
-    if (!dateString) return null;
-    return new Date(dateString).toLocaleDateString(undefined, {
-      month: 'short', day: 'numeric', year: 'numeric',
-    });
+  const formatDate = (d) =>
+    new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+
+  const formatMutedUntil = (d) => {
+    const mins = Math.round((new Date(d) - Date.now()) / 60000);
+    if (mins < 60) return `${mins}m`;
+    if (mins < 1440) return `${Math.round(mins / 60)}h`;
+    return `${Math.round(mins / 1440)}d`;
   };
 
-  const formatMutedUntil = (dateString) => {
-    const diffMs = new Date(dateString) - Date.now();
-    const diffMins = Math.round(diffMs / 60000);
-    if (diffMins < 60) return `${diffMins}m`;
-    if (diffMins < 1440) return `${Math.round(diffMins / 60)}h`;
-    return `${Math.round(diffMins / 1440)}d`;
-  };
-
-  const overdue = isOverdue();
+  const subtasks = todo.subtasks || [];
+  const subtasksDone = subtasks.filter(s => s.completed).length;
+  const subtasksTotal = subtasks.length;
+  const subtaskPct = subtasksTotal ? Math.round((subtasksDone / subtasksTotal) * 100) : 0;
 
   return (
-    <div className={`todo-item-card ${todo.completed ? 'completed' : ''} ${overdue ? 'overdue' : ''}`}>
+    <div className={`todo-item-card ${todo.completed ? 'completed' : ''} ${isOverdue ? 'overdue' : ''} ${selected ? 'bulk-selected' : ''}`}>
       <div className="todo-main">
-        {/* Completion toggle */}
-        <button
-          type="button"
-          className="todo-toggle-btn"
-          onClick={() => onToggleComplete(todo)}
-          aria-label={todo.completed ? 'Mark as incomplete' : 'Mark as complete'}
-        >
-          {todo.completed
-            ? <CheckCircle2 size={22} className="check-icon completed" />
-            : <Circle size={22} className="check-icon" />}
-        </button>
+        {/* Bulk checkbox OR completion toggle */}
+        {bulkMode ? (
+          <button
+            type="button"
+            className={`bulk-checkbox ${selected ? 'checked' : ''}`}
+            onClick={() => onBulkSelect?.(todo._id)}
+            aria-label={selected ? 'Deselect' : 'Select'}
+          >
+            {selected && <Check size={13} />}
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="todo-toggle-btn"
+            onClick={() => onToggleComplete(todo)}
+            aria-label={todo.completed ? 'Mark as incomplete' : 'Mark as complete'}
+          >
+            {todo.completed
+              ? <CheckCircle2 size={22} className="check-icon completed" />
+              : <Circle size={22} className="check-icon" />}
+          </button>
+        )}
 
         {/* Content */}
         <div className="todo-content">
@@ -89,16 +112,60 @@ const TodoItem = ({ todo, onToggleComplete, onEdit, onDelete, onSendReminder, on
             )}
           </div>
 
+          {/* Tags */}
+          {todo.tags?.length > 0 && (
+            <div className="todo-tags">
+              {todo.tags.map(tag => (
+                <span key={tag} className={`tag-chip tag-chip-sm tag-${tag.charCodeAt(0) % 8}`}>{tag}</span>
+              ))}
+            </div>
+          )}
+
           {todo.description && (
             <p className="todo-description">{todo.description}</p>
           )}
 
+          {/* Subtask progress bar */}
+          {subtasksTotal > 0 && (
+            <button
+              type="button"
+              className="subtask-progress-btn"
+              onClick={() => setShowSubtasks(v => !v)}
+            >
+              <div className="subtask-progress-bar-wrap">
+                <div className="subtask-progress-bar" style={{ width: `${subtaskPct}%` }} />
+              </div>
+              <span className="subtask-progress-label">
+                {subtasksDone}/{subtasksTotal} subtasks
+              </span>
+              {showSubtasks ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+            </button>
+          )}
+
+          {/* Subtask list */}
+          {showSubtasks && subtasksTotal > 0 && (
+            <ul className="subtask-list">
+              {subtasks.map((st) => (
+                <li
+                  key={st._id}
+                  className={`subtask-item ${st.completed ? 'done' : ''}`}
+                  onClick={() => !todo.completed && onToggleSubtask?.(todo, st._id)}
+                >
+                  <span className="subtask-checkbox-ico">
+                    {st.completed ? <CheckCircle2 size={14} /> : <Circle size={14} />}
+                  </span>
+                  <span className="subtask-title">{st.title}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+
           <div className="todo-meta">
             {todo.dueDate && (
-              <span className={`meta-tag ${overdue ? 'text-danger' : ''}`}>
-                {overdue ? <AlertTriangle size={13} /> : <Calendar size={13} />}
+              <span className={`meta-tag ${isOverdue ? 'text-danger' : ''}`}>
+                {isOverdue ? <AlertTriangle size={13} /> : <Calendar size={13} />}
                 {formatDate(todo.dueDate)}
-                {overdue && ' (Overdue)'}
+                {isOverdue && ' (Overdue)'}
                 {!todo.completed && (
                   <span className="shift-day-group">
                     <button
@@ -106,17 +173,13 @@ const TodoItem = ({ todo, onToggleComplete, onEdit, onDelete, onSendReminder, on
                       className="shift-day-btn"
                       onClick={(e) => { e.stopPropagation(); onShiftDue(todo, -1); }}
                       title="Prepone by 1 day"
-                    >
-                      <ChevronLeft size={12} />
-                    </button>
+                    ><ChevronLeft size={12} /></button>
                     <button
                       type="button"
                       className="shift-day-btn"
                       onClick={(e) => { e.stopPropagation(); onShiftDue(todo, 1); }}
                       title="Postpone by 1 day"
-                    >
-                      <ChevronRight size={12} />
-                    </button>
+                    ><ChevronRight size={12} /></button>
                   </span>
                 )}
               </span>
@@ -131,72 +194,51 @@ const TodoItem = ({ todo, onToggleComplete, onEdit, onDelete, onSendReminder, on
       </div>
 
       {/* Action Buttons */}
-      <div className="todo-actions">
-        {!todo.completed && onSendReminder && (
-          <button
-            type="button"
-            className="action-icon-btn remind-btn"
-            onClick={() => onSendReminder(todo)}
-            title="Send reminder now"
-          >
-            <Bell size={17} />
-          </button>
-        )}
-
-        {!todo.completed && onMute && (
-          <div className="mute-wrapper" ref={muteRef}>
-            <button
-              type="button"
-              className={`action-icon-btn mute-btn ${isMuted ? 'mute-btn-active' : ''}`}
-              onClick={() => setShowMuteMenu((v) => !v)}
-              title={isMuted ? 'Muted — click to change' : 'Mute notifications'}
-            >
-              <BellOff size={17} />
+      {!bulkMode && (
+        <div className="todo-actions">
+          {!todo.completed && onSendReminder && (
+            <button type="button" className="action-icon-btn remind-btn" onClick={() => onSendReminder(todo)} title="Send reminder now">
+              <Bell size={17} />
             </button>
+          )}
 
-            {showMuteMenu && (
-              <div className="mute-dropdown">
-                <div className="mute-dropdown-header">Mute notifications for</div>
-                {isMuted && (
-                  <button
-                    className="mute-option mute-unmute-btn"
-                    onClick={() => { onMute(todo, null); setShowMuteMenu(false); }}
-                  >
-                    Unmute now
-                  </button>
-                )}
-                {MUTE_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    className="mute-option"
-                    onClick={() => { onMute(todo, opt.value); setShowMuteMenu(false); }}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+          {!todo.completed && onMute && (
+            <div className="mute-wrapper" ref={muteRef}>
+              <button
+                type="button"
+                className={`action-icon-btn mute-btn ${isMuted ? 'mute-btn-active' : ''}`}
+                onClick={() => setShowMuteMenu(v => !v)}
+                title={isMuted ? 'Muted — click to change' : 'Mute notifications'}
+              >
+                <BellOff size={17} />
+              </button>
+              {showMuteMenu && (
+                <div className="mute-dropdown">
+                  <div className="mute-dropdown-header">Mute notifications for</div>
+                  {isMuted && (
+                    <button className="mute-option mute-unmute-btn" onClick={() => { onMute(todo, null); setShowMuteMenu(false); }}>
+                      Unmute now
+                    </button>
+                  )}
+                  {MUTE_OPTIONS.map((opt) => (
+                    <button key={opt.value} className="mute-option" onClick={() => { onMute(todo, opt.value); setShowMuteMenu(false); }}>
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
-        <button
-          type="button"
-          className="action-icon-btn edit-btn"
-          onClick={() => onEdit(todo)}
-          title="Edit task"
-        >
-          <Edit3 size={17} />
-        </button>
+          <button type="button" className="action-icon-btn edit-btn" onClick={() => onEdit(todo)} title="Edit task">
+            <Edit3 size={17} />
+          </button>
 
-        <button
-          type="button"
-          className="action-icon-btn delete-btn"
-          onClick={() => onDelete(todo._id)}
-          title="Delete task"
-        >
-          <Trash2 size={17} />
-        </button>
-      </div>
+          <button type="button" className="action-icon-btn delete-btn" onClick={() => onDelete(todo._id)} title="Delete task">
+            <Trash2 size={17} />
+          </button>
+        </div>
+      )}
     </div>
   );
 };

@@ -9,6 +9,8 @@ const {
   sendManualReminder,
   muteTask,
   shiftDue,
+  toggleSubtask,
+  bulkAction,
 } = require('../controllers/todoController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -18,6 +20,9 @@ router.use(protect);
 router.route('/')
   .get(getTodos)
   .post(createTodo);
+
+// Bulk complete or delete (must be before /:id)
+router.post('/bulk', bulkAction);
 
 router.route('/:id')
   .get(getTodoById)
@@ -32,5 +37,8 @@ router.patch('/:id/mute', muteTask);
 
 // Shift due date forward (postpone) or backward (prepone)
 router.patch('/:id/shift-due', shiftDue);
+
+// Toggle a subtask completed state
+router.patch('/:id/subtasks/:subtaskId', toggleSubtask);
 
 module.exports = router;

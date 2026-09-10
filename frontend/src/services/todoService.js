@@ -112,6 +112,29 @@ export const todoService = {
     return data.data;
   },
 
+  // Toggle a subtask completed state
+  async toggleSubtask(todoId, subtaskId) {
+    const response = await fetch(`${API_URL}/todos/${todoId}/subtasks/${subtaskId}`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Failed to toggle subtask');
+    return data.data;
+  },
+
+  // Bulk complete or delete tasks
+  async bulkAction(ids, action) {
+    const response = await fetch(`${API_URL}/todos/bulk`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ ids, action }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Bulk action failed');
+    return data;
+  },
+
   // Send email reminder on demand
   async sendReminder(id) {
     const response = await fetch(`${API_URL}/todos/${id}/remind`, {

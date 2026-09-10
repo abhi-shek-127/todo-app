@@ -95,7 +95,7 @@ const getTodoById = async (req, res) => {
 // @access  Private
 const createTodo = async (req, res) => {
   try {
-    const { title, description, priority, dueDate } = req.body;
+    const { title, description, priority, dueDate, tags, subtasks } = req.body;
 
     if (!title || !title.trim()) {
       return res.status(400).json({
@@ -109,6 +109,10 @@ const createTodo = async (req, res) => {
       description: description ? description.trim() : '',
       priority: priority || 'medium',
       dueDate: dueDate || null,
+      tags: Array.isArray(tags) ? tags.slice(0, 10) : [],
+      subtasks: Array.isArray(subtasks)
+        ? subtasks.filter(s => s.title?.trim()).map(s => ({ title: s.title.trim(), completed: false }))
+        : [],
       user: req.user._id,
     });
 
@@ -157,12 +161,14 @@ const updateTodo = async (req, res) => {
 
     const wasCompleted = todo.completed;
 
-    const { title, description, completed, priority, dueDate } = req.body;
+    const { title, description, completed, priority, dueDate, tags, subtasks } = req.body;
 
     if (title !== undefined) todo.title = title.trim();
     if (description !== undefined) todo.description = description.trim();
     if (completed !== undefined) todo.completed = Boolean(completed);
     if (priority !== undefined) todo.priority = priority;
+    if (tags !== undefined) todo.tags = Array.isArray(tags) ? tags.slice(0, 10) : [];
+    if (subtasks !== undefined) todo.subtasks = subtasks;
     if (dueDate !== undefined) {
       todo.dueDate = dueDate ? new Date(dueDate) : null;
       todo.reminderSent = false; // Reset reminder so updated date triggers reminders
@@ -399,6 +405,60 @@ const shiftDue = async (req, res) => {
   }
 };
 
+// @desc    Toggle a subtask completed state
+// @route   PATCH /api/todos/:id/subtasks/:subtaskId
+// @access  Private
+const toggleSubtask = async (req, res) => {
+  try {
+    const todo = await Todo.findOne({ _id: req.params.id, user: req.user._id });
+    if (!todo) return res.status(404).json({ success: false, message: 'Task not found' });
+
+    const subtask = todo.subtasks.id(req.params.subtaskId);
+    if (!subtask) return res.status(404).json({ success: false, message: 'Subtask not found' });
+
+    subtask.completed = !subtask.completed;
+    await todo.save();
+    res.json({ success: true, data: todo });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Bulk complete or delete multiple tasks
+// @route   POST /api/todos/bulk
+// @access  Private
+const bulkAction = async (req, res) => {
+  try {
+    const { ids, action } = req.body;
+    if (!Array.isArray(ids) || !ids.length) {
+      return res.status(400).json({ success: false, message: 'No task IDs provided' });
+    }
+    const query = { _id: { $in: ids }, user: req.user._id };
+
+    if (action === 'delete') {
+      await Todo.deleteMany(query);
+    } else if (action === 'complete') {
+      await Todo.updateMany(query, { $set: { completed: true } });
+    } else {
+      return res.status(400).json({ success: false, message: 'Invalid action' });
+    }
+
+    try {
+      await Activity.create({
+        user: req.user._id,
+        action: action === 'delete' ? 'DELETED' : 'COMPLETED',
+        todoTitle: `${ids.length} tasks`,
+        todoId: null,
+        details: `Bulk ${action === 'delete' ? 'deleted' : 'completed'} ${ids.length} task(s)`,
+      });
+    } catch (_) {}
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   getTodos,
   getTodoById,
@@ -408,4 +468,6 @@ module.exports = {
   sendManualReminder,
   muteTask,
   shiftDue,
+  toggleSubtask,
+  bulkAction,
 };

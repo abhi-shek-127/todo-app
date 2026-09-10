@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import confetti from 'canvas-confetti';
 import {
   Clock,
   AlertCircle,
@@ -15,6 +16,8 @@ import {
   Trash2,
   Plus,
   Activity,
+  Moon,
+  Sun,
 } from 'lucide-react';
 import Logo from '../components/Logo';
 import ProfileModal from '../components/ProfileModal';
@@ -51,6 +54,35 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
   const mainColRef = useRef(null);
   const [showProfile, setShowProfile] = useState(false);
   const [showUsernameSetup, setShowUsernameSetup] = useState(!user?.username);
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('tm-dark') === '1');
+
+  // Apply / remove dark class on <html>
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', darkMode);
+    localStorage.setItem('tm-dark', darkMode ? '1' : '0');
+  }, [darkMode]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e) => {
+      // Ignore when typing in inputs
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+      if (e.key === 'n' || e.key === 'N') {
+        const input = document.getElementById('task-title-input');
+        if (input) { input.focus(); setMobileTab('tasks'); }
+      }
+      if (e.key === 'Escape') {
+        setShowProfile(false);
+        setShowUsernameSetup(false);
+        setConfirmDialog({ open: false, title: '', message: '', onConfirm: null });
+      }
+      if (e.key === 'd' || e.key === 'D') {
+        setDarkMode(v => !v);
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, []);
 
   const handleUsernameSuccess = (newUsername) => {
     setShowUsernameSetup(false);
@@ -189,9 +221,52 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
       );
       await fetchTodos();
       await fetchActivities();
+      // Confetti when all tasks are now complete
+      const allDone = todos.every(t => t._id === todo._id ? updated.completed : t.completed);
+      if (updated.completed && allDone && todos.length > 0) {
+        confetti({ particleCount: 120, spread: 80, origin: { y: 0.55 } });
+      }
     } catch (err) {
       showNotification(err.message || 'Failed to update task status', 'error');
     }
+  };
+
+  // Toggle subtask
+  const handleToggleSubtask = async (todo, subtaskId) => {
+    try {
+      await todoService.toggleSubtask(todo._id, subtaskId);
+      await fetchTodos();
+    } catch (err) {
+      showNotification(err.message || 'Failed to update subtask', 'error');
+    }
+  };
+
+  // Bulk complete
+  const handleBulkComplete = (ids) => {
+    askConfirm('Complete Tasks', `Mark ${ids.length} task(s) as complete?`, async () => {
+      try {
+        await todoService.bulkAction(ids, 'complete');
+        showNotification(`${ids.length} task(s) marked complete`);
+        await fetchTodos();
+        await fetchActivities();
+      } catch (err) {
+        showNotification(err.message || 'Bulk complete failed', 'error');
+      }
+    });
+  };
+
+  // Bulk delete
+  const handleBulkDelete = (ids) => {
+    askConfirm('Delete Tasks', `Permanently delete ${ids.length} task(s)?`, async () => {
+      try {
+        await todoService.bulkAction(ids, 'delete');
+        showNotification(`${ids.length} task(s) deleted`);
+        await fetchTodos();
+        await fetchActivities();
+      } catch (err) {
+        showNotification(err.message || 'Bulk delete failed', 'error');
+      }
+    });
   };
 
   // Delete todo
@@ -309,6 +384,15 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
               <span className="user-name">{user?.name || 'User'}</span>
               <span className="user-email">{user?.username ? `@${user.username}` : user?.email || ''}</span>
             </div>
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-sm dark-toggle-btn"
+            onClick={() => setDarkMode(v => !v)}
+            title={darkMode ? 'Switch to light mode (D)' : 'Switch to dark mode (D)'}
+          >
+            {darkMode ? <Sun size={16} /> : <Moon size={16} />}
           </button>
 
           {!isStandalone && (installPrompt || isIOS) && (
@@ -445,6 +529,9 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
             onSendReminder={handleSendReminder}
             onMute={handleMute}
             onShiftDue={handleShiftDue}
+            onToggleSubtask={handleToggleSubtask}
+            onBulkComplete={handleBulkComplete}
+            onBulkDelete={handleBulkDelete}
             filters={filters}
             onFilterChange={setFilters}
           />
