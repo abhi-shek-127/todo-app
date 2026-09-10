@@ -1,15 +1,13 @@
 const cron = require('node-cron');
 const Todo = require('../models/Todo');
 const Activity = require('../models/Activity');
+const PushSubscription = require('../models/PushSubscription');
 const { sendTaskReminderEmail } = require('./emailService');
+const { sendPushNotification } = require('./pushService');
 
-/**
- * Scan for tasks that are due soon and have not yet received a reminder
- */
 const checkAndSendReminders = async () => {
   try {
     const now = new Date();
-    // Window: due anytime up to 24 hours from now (or already overdue)
     const reminderWindow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
     const dueTodos = await Todo.find({
@@ -25,6 +23,7 @@ const checkAndSendReminders = async () => {
     for (const todo of dueTodos) {
       if (!todo.user || !todo.user.email) continue;
 
+      // Send email reminder
       try {
         await sendTaskReminderEmail({
           to: todo.user.email,
@@ -34,52 +33,46 @@ const checkAndSendReminders = async () => {
           dueDate: todo.dueDate,
           priority: todo.priority,
         });
-
-        todo.reminderSent = true;
-        await todo.save();
-
-        // Log in user's activity feed
-        try {
-          await Activity.create({
-            user: todo.user._id,
-            action: 'UPDATED',
-            todoTitle: todo.title,
-            todoId: todo._id,
-            details: `Automated reminder email sent to ${todo.user.email}`,
-          });
-        } catch (actErr) {
-          // ignore non-critical activity log error
-        }
-      } catch (sendErr) {
-        console.error(
-          `[ReminderScheduler] Error sending reminder for task "${todo.title}":`,
-          sendErr.message
-        );
+      } catch (emailErr) {
+        console.error(`[ReminderScheduler] Email error for "${todo.title}":`, emailErr.message);
       }
+
+      // Send push notifications to all user's subscribed devices
+      const pushSubs = await PushSubscription.find({ user: todo.user._id });
+      for (const sub of pushSubs) {
+        const result = await sendPushNotification(sub.subscription, {
+          title: `⏰ Reminder: ${todo.title}`,
+          body: `Priority: ${todo.priority.toUpperCase()} • Due: ${new Date(todo.dueDate).toLocaleDateString()}`,
+          url: '/',
+          tag: `reminder-${todo._id}`,
+        });
+        if (result === 'expired') {
+          await PushSubscription.deleteOne({ _id: sub._id });
+        }
+      }
+
+      todo.reminderSent = true;
+      await todo.save();
+
+      try {
+        await Activity.create({
+          user: todo.user._id,
+          action: 'UPDATED',
+          todoTitle: todo.title,
+          todoId: todo._id,
+          details: `Reminder sent via email${pushSubs.length > 0 ? ` + push (${pushSubs.length} device(s))` : ''}`,
+        });
+      } catch (_) {}
     }
   } catch (err) {
-    console.error('[ReminderScheduler] Error running reminder job:', err.message);
+    console.error('[ReminderScheduler] Error:', err.message);
   }
 };
 
-/**
- * Initialize background cron job
- */
 const initReminderScheduler = () => {
-  // Check every 15 minutes
-  cron.schedule('*/15 * * * *', () => {
-    checkAndSendReminders();
-  });
-
+  cron.schedule('*/15 * * * *', () => { checkAndSendReminders(); });
   console.log('[ReminderScheduler] Background task reminder scheduler initialized (checks every 15m).');
-
-  // Also run an initial check shortly after startup
-  setTimeout(() => {
-    checkAndSendReminders();
-  }, 10000);
+  setTimeout(() => { checkAndSendReminders(); }, 10000);
 };
 
-module.exports = {
-  initReminderScheduler,
-  checkAndSendReminders,
-};
+module.exports = { initReminderScheduler, checkAndSendReminders };

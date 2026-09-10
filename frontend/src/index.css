@@ -1092,3 +1092,29 @@ button, input, textarea, select {
   font-size: 0.76rem;
   margin-top: 4px;
 }
+
+/* Push notification button */
+.push-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+.push-btn-active {
+  background: #4f46e5;
+  color: #fff;
+}
+.push-btn-active:hover { background: #4338ca; }
+.push-btn-inactive {
+  background: rgba(255,255,255,0.1);
+  color: #94a3b8;
+  border: 1px solid rgba(255,255,255,0.15);
+}
+.push-btn-inactive:hover { background: rgba(255,255,255,0.18); color: #fff; }
+.push-btn:disabled { opacity: 0.6; cursor: not-allowed; }

@@ -9,13 +9,21 @@ import {
   Flame,
   User,
   Sparkles,
-  RefreshCw,
+  Bell,
+  BellOff,
 } from 'lucide-react';
 import TodoForm from '../components/TodoForm';
 import TodoList from '../components/TodoList';
 import ActivityList from '../components/ActivityList';
 import todoService from '../services/todoService';
 import activityService from '../services/activityService';
+import authService from '../services/authService';
+import {
+  isPushSupported,
+  checkPushSubscribed,
+  subscribeToPush,
+  unsubscribeFromPush,
+} from '../services/pushService';
 
 const Dashboard = ({ user, onLogout }) => {
   const [todos, setTodos] = useState([]);
@@ -24,6 +32,8 @@ const Dashboard = ({ user, onLogout }) => {
   const [loadingTodos, setLoadingTodos] = useState(true);
   const [loadingActivities, setLoadingActivities] = useState(false);
   const [notification, setNotification] = useState(null);
+  const [pushSubscribed, setPushSubscribed] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
 
   // Filters state
   const [filters, setFilters] = useState({
@@ -66,13 +76,37 @@ const Dashboard = ({ user, onLogout }) => {
     }
   }, []);
 
-  useEffect(() => {
-    fetchTodos();
-  }, [fetchTodos]);
+  useEffect(() => { fetchTodos(); }, [fetchTodos]);
+  useEffect(() => { fetchActivities(); }, [fetchActivities]);
 
   useEffect(() => {
-    fetchActivities();
-  }, [fetchActivities]);
+    checkPushSubscribed().then(setPushSubscribed);
+  }, []);
+
+  const handleTogglePush = async () => {
+    setPushLoading(true);
+    try {
+      const token = authService.getToken();
+      if (pushSubscribed) {
+        await unsubscribeFromPush(token);
+        setPushSubscribed(false);
+        showNotification('Push notifications disabled');
+      } else {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+          showNotification('Notification permission denied', 'error');
+          return;
+        }
+        await subscribeToPush(token);
+        setPushSubscribed(true);
+        showNotification('Push notifications enabled! You will get reminders on this device.');
+      }
+    } catch (err) {
+      showNotification(err.message || 'Failed to toggle push notifications', 'error');
+    } finally {
+      setPushLoading(false);
+    }
+  };
 
   // Save or update todo
   const handleSaveTodo = async (todoData) => {
@@ -181,6 +215,19 @@ const Dashboard = ({ user, onLogout }) => {
               <span className="user-email">{user?.email || ''}</span>
             </div>
           </div>
+
+          {isPushSupported() && (
+            <button
+              type="button"
+              className={`btn btn-sm push-btn ${pushSubscribed ? 'push-btn-active' : 'push-btn-inactive'}`}
+              onClick={handleTogglePush}
+              disabled={pushLoading}
+              title={pushSubscribed ? 'Disable push notifications' : 'Enable push notifications'}
+            >
+              {pushSubscribed ? <Bell size={16} /> : <BellOff size={16} />}
+              <span>{pushLoading ? '...' : pushSubscribed ? 'Notifs On' : 'Notifs Off'}</span>
+            </button>
+          )}
 
           <button
             type="button"
