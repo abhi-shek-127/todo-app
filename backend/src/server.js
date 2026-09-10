@@ -10,7 +10,10 @@ dotenv.config();
 // Connect to Database
 connectDB();
 
-// Start background email reminder scheduler
+// Pre-warm SMTP connection pool on startup for instant first email delivery
+require('./services/emailService');
+
+// Start background reminder scheduler
 initReminderScheduler();
 
 const app = express();

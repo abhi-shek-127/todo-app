@@ -1,5 +1,7 @@
 const Todo = require('../models/Todo');
 const Activity = require('../models/Activity');
+const PushSubscription = require('../models/PushSubscription');
+const { sendPushNotification } = require('../services/pushService');
 
 // @desc    Get all todos for the authenticated user
 // @route   GET /api/todos
@@ -251,61 +253,61 @@ const deleteTodo = async (req, res) => {
   }
 };
 
-// @desc    Send on-demand email reminder for a task
+// @desc    Send on-demand email + push reminder for a task
 // @route   POST /api/todos/:id/remind
 // @access  Private
 const sendManualReminder = async (req, res) => {
   try {
     const { sendTaskReminderEmail } = require('../services/emailService');
 
-    const todo = await Todo.findOne({
-      _id: req.params.id,
-      user: req.user._id,
-    });
-
+    const todo = await Todo.findOne({ _id: req.params.id, user: req.user._id });
     if (!todo) {
-      return res.status(404).json({
-        success: false,
-        message: 'Todo not found or unauthorized access',
-      });
+      return res.status(404).json({ success: false, message: 'Todo not found or unauthorized access' });
     }
 
-    const result = await sendTaskReminderEmail({
-      to: req.user.email,
-      name: req.user.name,
-      taskTitle: todo.title,
-      description: todo.description,
-      dueDate: todo.dueDate,
-      priority: todo.priority,
+    // Fire email + push in parallel for maximum speed
+    const [emailResult, pushSubs] = await Promise.all([
+      sendTaskReminderEmail({
+        to: req.user.email,
+        name: req.user.name,
+        taskTitle: todo.title,
+        description: todo.description,
+        dueDate: todo.dueDate,
+        priority: todo.priority,
+      }),
+      PushSubscription.find({ user: req.user._id }),
+    ]);
+
+    // Send push to all subscribed devices (non-blocking)
+    const pushPromises = pushSubs.map(async (sub) => {
+      const result = await sendPushNotification(sub.subscription, {
+        title: `⏰ Reminder: ${todo.title}`,
+        body: `Priority: ${todo.priority.toUpperCase()}${todo.dueDate ? ' • Due: ' + new Date(todo.dueDate).toLocaleDateString() : ''}`,
+        url: '/',
+        tag: `manual-reminder-${todo._id}`,
+      });
+      if (result === 'expired') await PushSubscription.deleteOne({ _id: sub._id });
     });
+    await Promise.allSettled(pushPromises);
 
     todo.reminderSent = true;
     await todo.save();
 
-    // Record activity
-    try {
-      await Activity.create({
-        user: req.user._id,
-        action: 'UPDATED',
-        todoTitle: todo.title,
-        todoId: todo._id,
-        details: `Reminder email sent to ${req.user.email}`,
-      });
-    } catch (actErr) {
-      // ignore
-    }
+    Activity.create({
+      user: req.user._id,
+      action: 'UPDATED',
+      todoTitle: todo.title,
+      todoId: todo._id,
+      details: `Reminder sent — email to ${req.user.email}${pushSubs.length > 0 ? ` + push to ${pushSubs.length} device(s)` : ''}`,
+    }).catch(() => {});
 
     res.json({
       success: true,
-      message: `Reminder email successfully sent to ${req.user.email}`,
-      previewUrl: result?.previewUrl || null,
+      message: `Reminder sent to ${req.user.email}${pushSubs.length > 0 ? ` + ${pushSubs.length} device(s)` : ''}`,
     });
   } catch (error) {
     console.error('Send reminder error:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Server error sending reminder email',
-    });
+    res.status(500).json({ success: false, message: error.message || 'Server error sending reminder' });
   }
 };
 

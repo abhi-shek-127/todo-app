@@ -2,146 +2,161 @@ const nodemailer = require('nodemailer');
 
 let cachedTransporter = null;
 
-const getTransporter = async () => {
-  if (cachedTransporter) {
-    return cachedTransporter;
-  }
+// Pre-warm transporter on module load for instant first delivery
+const getTransporter = () => {
+  if (cachedTransporter) return cachedTransporter;
 
-  // 1. If SMTP credentials are provided in .env
   if (process.env.SMTP_USER && process.env.SMTP_PASS) {
-    const options = {
+    // pool:true reuses SMTP connection — much faster than reconnecting each time
+    cachedTransporter = nodemailer.createTransport({
+      pool: true,
+      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      port: parseInt(process.env.SMTP_PORT, 10) || 587,
+      secure: false,
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
-    };
-
-    if (process.env.SMTP_HOST) {
-      options.host = process.env.SMTP_HOST;
-      options.port = parseInt(process.env.SMTP_PORT, 10) || 587;
-      options.secure = options.port === 465;
-    } else {
-      // Default to Gmail service
-      options.service = 'gmail';
-    }
-
-    cachedTransporter = nodemailer.createTransport(options);
-    console.log('[EmailService] Using configured SMTP provider for user:', process.env.SMTP_USER);
-    return cachedTransporter;
-  }
-
-  // 2. Automatic test fallback: Ethereal test account (Zero configuration required)
-  try {
-    const testAccount = await nodemailer.createTestAccount();
-    cachedTransporter = nodemailer.createTransport({
-      host: 'smtp.ethereal.email',
-      port: 587,
-      secure: false,
-      auth: {
-        user: testAccount.user,
-        pass: testAccount.pass,
-      },
+      maxConnections: 5,
+      maxMessages: 100,
+      rateDelta: 1000,
+      rateLimit: 5,
     });
-    console.log('[EmailService] Using Ethereal test mailer. Account:', testAccount.user);
-    console.log('[EmailService] Reminders will generate clickable browser preview links!');
+    // Verify connection immediately so first send has no handshake delay
+    cachedTransporter.verify((err) => {
+      if (err) console.warn('[EmailService] SMTP verify failed:', err.message);
+      else console.log('[EmailService] SMTP pool ready — fast delivery enabled');
+    });
     return cachedTransporter;
-  } catch (err) {
-    console.warn('[EmailService] Could not initialize test mailer:', err.message);
-    return null;
   }
+
+  console.warn('[EmailService] No SMTP credentials configured');
+  return null;
 };
 
-/**
- * Send task reminder email
- */
-const sendTaskReminderEmail = async ({ to, name, taskTitle, description, dueDate, priority }) => {
+const PRIORITY_META = {
+  high:   { color: '#ef4444', bg: '#fef2f2', label: '🔴 HIGH PRIORITY',   emoji: '🚨' },
+  medium: { color: '#f59e0b', bg: '#fffbeb', label: '🟡 MEDIUM PRIORITY', emoji: '⚠️' },
+  low:    { color: '#10b981', bg: '#f0fdf4', label: '🟢 LOW PRIORITY',    emoji: '✅' },
+};
+
+const sendTaskReminderEmail = async ({ to, name, taskTitle, description, dueDate, priority, appUrl }) => {
   try {
-    const transporter = await getTransporter();
+    const transporter = getTransporter();
     if (!transporter) {
       console.warn('[EmailService] Transporter unavailable, skipping email delivery.');
       return null;
     }
 
+    const p = PRIORITY_META[priority] || PRIORITY_META.medium;
+    const appLink = appUrl || process.env.APP_URL || 'https://todo-app-7ddz.onrender.com';
+
     const formattedDate = dueDate
-      ? new Date(dueDate).toLocaleDateString(undefined, {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
+      ? new Date(dueDate).toLocaleDateString('en-US', {
+          weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
         })
-      : 'No due date specified';
+      : null;
 
-    const priorityColors = {
-      high: '#ef4444',
-      medium: '#f59e0b',
-      low: '#10b981',
-    };
+    const isOverdue = dueDate && new Date(dueDate) < new Date();
+    const statusLabel = isOverdue ? '⚠️ OVERDUE' : '⏰ DUE SOON';
+    const statusColor = isOverdue ? '#ef4444' : '#4f46e5';
 
-    const badgeColor = priorityColors[priority] || '#6366f1';
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TaskMaster Reminder</title></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:'Segoe UI',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:32px 16px;">
+<tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.10);">
 
-    const htmlContent = `
-      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-        <div style="background-color: #4f46e5; padding: 24px; text-align: center; color: #ffffff;">
-          <h1 style="margin: 0; font-size: 24px; font-weight: 700;">TaskMaster Reminder</h1>
-          <p style="margin: 6px 0 0 0; opacity: 0.9; font-size: 14px;">Stay on top of your schedule</p>
+  <!-- HEADER -->
+  <tr><td style="background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);padding:36px 40px;text-align:center;">
+    <div style="display:inline-block;background:rgba(255,255,255,0.15);border-radius:50%;width:56px;height:56px;line-height:56px;font-size:28px;margin-bottom:14px;">✓</div>
+    <h1 style="margin:0;color:#ffffff;font-size:26px;font-weight:800;letter-spacing:-0.5px;">TaskMaster</h1>
+    <p style="margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:14px;font-weight:500;">Your Personal Productivity Assistant</p>
+  </td></tr>
+
+  <!-- STATUS BANNER -->
+  <tr><td style="background:${statusColor};padding:10px 40px;text-align:center;">
+    <p style="margin:0;color:#ffffff;font-size:13px;font-weight:700;letter-spacing:1px;">${statusLabel}</p>
+  </td></tr>
+
+  <!-- BODY -->
+  <tr><td style="padding:36px 40px;">
+    <p style="margin:0 0 6px;font-size:18px;color:#1e293b;font-weight:600;">Hi ${name || 'there'} 👋</p>
+    <p style="margin:0 0 28px;font-size:15px;color:#64748b;line-height:1.6;">
+      ${isOverdue
+        ? 'This task is <strong>overdue</strong>. Take a moment to complete it or update the due date.'
+        : 'Just a heads-up — one of your tasks needs attention before the deadline.'}
+    </p>
+
+    <!-- TASK CARD -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:${p.bg};border:1.5px solid ${p.color}33;border-left:5px solid ${p.color};border-radius:12px;margin-bottom:28px;">
+      <tr><td style="padding:24px 24px 20px;">
+
+        <!-- Priority badge -->
+        <div style="margin-bottom:14px;">
+          <span style="background:${p.color};color:#ffffff;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;letter-spacing:0.5px;">${p.label}</span>
         </div>
 
-        <div style="padding: 28px 24px;">
-          <p style="font-size: 16px; color: #334155; margin-top: 0;">Hi <strong>${name || 'there'}</strong>,</p>
-          <p style="font-size: 15px; color: #475569; line-height: 1.5;">This is a friendly reminder for your upcoming task:</p>
+        <!-- Task title -->
+        <h2 style="margin:0 0 12px;font-size:20px;color:#0f172a;font-weight:700;line-height:1.3;">${taskTitle}</h2>
 
-          <div style="background-color: #f8fafc; border-left: 4px solid ${badgeColor}; padding: 16px 20px; border-radius: 8px; margin: 20px 0;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-              <h2 style="margin: 0; font-size: 18px; color: #0f172a;">${taskTitle}</h2>
-              <span style="background-color: ${badgeColor}; color: #ffffff; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 12px; text-transform: uppercase;">
-                ${priority.toUpperCase()} PRIORITY
-              </span>
-            </div>
+        ${description ? `<p style="margin:0 0 16px;font-size:14px;color:#475569;line-height:1.6;border-top:1px solid ${p.color}22;padding-top:12px;">${description}</p>` : ''}
 
-            ${
-              description
-                ? `<p style="color: #64748b; font-size: 14px; margin: 8px 0 12px 0;">${description}</p>`
-                : ''
-            }
+        <!-- Due date -->
+        ${formattedDate ? `
+        <table cellpadding="0" cellspacing="0" style="margin-top:${description ? '0' : '12px'};">
+          <tr>
+            <td style="background:${p.color}18;border-radius:8px;padding:10px 16px;">
+              <span style="font-size:13px;color:${p.color};font-weight:700;">📅 Due: ${formattedDate}</span>
+            </td>
+          </tr>
+        </table>` : ''}
 
-            <div style="margin-top: 12px; font-size: 14px; color: #334155;">
-              📅 <strong>Due:</strong> ${formattedDate}
-            </div>
-          </div>
+      </td></tr>
+    </table>
 
-          <p style="font-size: 14px; color: #64748b; margin-bottom: 0;">
-            Log into TaskMaster to check off or update this task when completed.
-          </p>
-        </div>
+    <!-- CTA BUTTON -->
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr><td align="center" style="padding-bottom:28px;">
+        <a href="${appLink}" style="display:inline-block;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;padding:14px 36px;border-radius:10px;letter-spacing:0.3px;">
+          Open TaskMaster →
+        </a>
+      </td></tr>
+    </table>
 
-        <div style="background-color: #f1f5f9; padding: 16px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0;">
-          Sent with ❤️ by TaskMaster Productivity Assistant
-        </div>
-      </div>
-    `;
+    <p style="margin:0;font-size:13px;color:#94a3b8;text-align:center;line-height:1.6;">
+      Mark this task complete in the app once done.<br>You can manage all your reminders from your TaskMaster dashboard.
+    </p>
+  </td></tr>
+
+  <!-- FOOTER -->
+  <tr><td style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:20px 40px;text-align:center;">
+    <p style="margin:0 0 4px;font-size:12px;color:#94a3b8;">Sent by <strong style="color:#4f46e5;">TaskMaster</strong> — Your Productivity Companion</p>
+    <p style="margin:0;font-size:11px;color:#cbd5e1;">To stop receiving reminders, manage your tasks at <a href="${appLink}" style="color:#4f46e5;">${appLink}</a></p>
+  </td></tr>
+
+</table>
+</td></tr>
+</table>
+</body></html>`;
+
+    const text = `Hi ${name || 'there'},\n\n${isOverdue ? 'OVERDUE' : 'REMINDER'}: ${taskTitle}\nPriority: ${priority.toUpperCase()}\n${formattedDate ? `Due: ${formattedDate}\n` : ''}${description ? `\n${description}\n` : ''}\nOpen app: ${appLink}\n\n— TaskMaster`;
 
     const info = await transporter.sendMail({
-      from: process.env.SMTP_FROM || '"TaskMaster Reminders" <notifications@taskmaster.app>',
+      from: process.env.SMTP_FROM || `"TaskMaster" <${process.env.SMTP_USER}>`,
       to,
-      subject: `⏰ Reminder: ${taskTitle}`,
-      text: `Hi ${name || 'there'},\n\nReminder for your task: "${taskTitle}"\nPriority: ${priority}\nDue Date: ${formattedDate}\n\n${description || ''}\n\nTaskMaster Team`,
-      html: htmlContent,
+      subject: `${p.emoji} ${isOverdue ? '[OVERDUE]' : 'Reminder:'} ${taskTitle}`,
+      text,
+      html,
     });
 
-    console.log(`[EmailService] Reminder sent to ${to} (Message ID: ${info.messageId})`);
-
-    const previewUrl = nodemailer.getTestMessageUrl(info);
-    if (previewUrl) {
-      console.log(`[EmailService] 🔗 Preview email in browser: ${previewUrl}`);
-    }
-
-    return {
-      success: true,
-      messageId: info.messageId,
-      previewUrl: previewUrl || null,
-    };
+    console.log(`[EmailService] ✅ Sent to ${to} — ${info.messageId}`);
+    return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('[EmailService] Failed to send reminder email:', error.message);
+    console.error('[EmailService] ❌ Failed:', error.message);
     throw error;
   }
 };
