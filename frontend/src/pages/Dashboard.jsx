@@ -11,6 +11,8 @@ import {
   Sparkles,
   Bell,
   BellOff,
+  Download,
+  Share2,
 } from 'lucide-react';
 import TodoForm from '../components/TodoForm';
 import TodoList from '../components/TodoList';
@@ -25,6 +27,10 @@ import {
   unsubscribeFromPush,
 } from '../services/pushService';
 
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+const isStandalone =
+  window.matchMedia('(display-mode: standalone)').matches || !!navigator.standalone;
+
 const Dashboard = ({ user, onLogout }) => {
   const [todos, setTodos] = useState([]);
   const [activities, setActivities] = useState([]);
@@ -34,6 +40,8 @@ const Dashboard = ({ user, onLogout }) => {
   const [notification, setNotification] = useState(null);
   const [pushSubscribed, setPushSubscribed] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState(null);
+  const [showIOSBanner, setShowIOSBanner] = useState(false);
 
   // Filters state
   const [filters, setFilters] = useState({
@@ -82,6 +90,27 @@ const Dashboard = ({ user, onLogout }) => {
   useEffect(() => {
     checkPushSubscribed().then(setPushSubscribed);
   }, []);
+
+  // Capture the browser's native install prompt (Android/Chrome/Edge)
+  useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstall = async () => {
+    if (isIOS) {
+      setShowIOSBanner(true);
+      return;
+    }
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    if (outcome === 'accepted') setInstallPrompt(null);
+  };
 
   const handleTogglePush = async () => {
     setPushLoading(true);
@@ -216,6 +245,18 @@ const Dashboard = ({ user, onLogout }) => {
             </div>
           </div>
 
+          {!isStandalone && (installPrompt || isIOS) && (
+            <button
+              type="button"
+              className="btn btn-sm install-btn"
+              onClick={handleInstall}
+              title="Install TaskMaster on your device"
+            >
+              {isIOS ? <Share2 size={16} /> : <Download size={16} />}
+              <span>Install App</span>
+            </button>
+          )}
+
           {isPushSupported() && (
             <button
               type="button"
@@ -250,6 +291,25 @@ const Dashboard = ({ user, onLogout }) => {
             <Sparkles size={18} />
           )}
           <span>{notification.message}</span>
+        </div>
+      )}
+
+      {/* iOS Install Instructions Banner */}
+      {showIOSBanner && (
+        <div className="ios-install-banner">
+          <Share2 size={18} className="ios-install-icon" />
+          <span>
+            Tap the <strong>Share</strong> button in Safari, then choose{' '}
+            <strong>Add to Home Screen</strong> to install TaskMaster.
+          </span>
+          <button
+            type="button"
+            className="ios-install-close"
+            onClick={() => setShowIOSBanner(false)}
+            aria-label="Dismiss"
+          >
+            ✕
+          </button>
         </div>
       )}
 
