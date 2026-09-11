@@ -112,6 +112,18 @@ export const todoService = {
     return data.data;
   },
 
+  // Move task to a kanban column
+  async moveKanban(id, status) {
+    const response = await fetch(`${API_URL}/todos/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ status, completed: status === 'done' }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Failed to move task');
+    return data.data;
+  },
+
   // Toggle a subtask completed state
   async toggleSubtask(todoId, subtaskId) {
     const response = await fetch(`${API_URL}/todos/${todoId}/subtasks/${subtaskId}`, {

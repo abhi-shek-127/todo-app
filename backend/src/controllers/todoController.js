@@ -161,14 +161,22 @@ const updateTodo = async (req, res) => {
 
     const wasCompleted = todo.completed;
 
-    const { title, description, completed, priority, dueDate, tags, subtasks } = req.body;
+    const { title, description, completed, priority, dueDate, tags, subtasks, status } = req.body;
 
     if (title !== undefined) todo.title = title.trim();
     if (description !== undefined) todo.description = description.trim();
-    if (completed !== undefined) todo.completed = Boolean(completed);
-    if (priority !== undefined) todo.priority = priority;
     if (tags !== undefined) todo.tags = Array.isArray(tags) ? tags.slice(0, 10) : [];
     if (subtasks !== undefined) todo.subtasks = subtasks;
+    if (priority !== undefined) todo.priority = priority;
+    // Sync completed <-> status
+    if (status !== undefined && ['todo', 'inprogress', 'done'].includes(status)) {
+      todo.status = status;
+      todo.completed = status === 'done';
+    } else if (completed !== undefined) {
+      todo.completed = Boolean(completed);
+      if (todo.completed) todo.status = 'done';
+      else if (todo.status === 'done') todo.status = 'todo';
+    }
     if (dueDate !== undefined) {
       todo.dueDate = dueDate ? new Date(dueDate) : null;
       todo.reminderSent = false; // Reset reminder so updated date triggers reminders

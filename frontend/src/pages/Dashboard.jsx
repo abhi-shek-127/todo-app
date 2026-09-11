@@ -18,12 +18,19 @@ import {
   Activity,
   Moon,
   Sun,
+  LayoutGrid,
+  CalendarDays,
+  BarChart2,
+  List,
 } from 'lucide-react';
 import Logo from '../components/Logo';
 import ProfileModal from '../components/ProfileModal';
 import UsernameSetupModal from '../components/UsernameSetupModal';
 import TodoForm from '../components/TodoForm';
 import TodoList from '../components/TodoList';
+import KanbanBoard from '../components/KanbanBoard';
+import CalendarView from '../components/CalendarView';
+import StatsPanel from '../components/StatsPanel';
 import ActivityList from '../components/ActivityList';
 import todoService from '../services/todoService';
 import activityService from '../services/activityService';
@@ -55,6 +62,7 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
   const [showProfile, setShowProfile] = useState(false);
   const [showUsernameSetup, setShowUsernameSetup] = useState(!user?.username);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('tm-dark') === '1');
+  const [view, setView] = useState('list'); // 'list' | 'kanban' | 'calendar' | 'stats'
 
   // Apply / remove dark class on <html>
   useEffect(() => {
@@ -314,6 +322,18 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
     );
   };
 
+  // Move a task to a different kanban column
+  const handleMoveKanban = async (todo, status) => {
+    try {
+      await todoService.moveKanban(todo._id, status);
+      showNotification(`Moved "${todo.title}" to ${status === 'todo' ? 'To Do' : status === 'inprogress' ? 'In Progress' : 'Done'}`);
+      await fetchTodos();
+      await fetchActivities();
+    } catch (err) {
+      showNotification(err.message || 'Failed to move task', 'error');
+    }
+  };
+
   // Mute notifications for a task
   const handleMute = async (todo, muteFor) => {
     try {
@@ -517,24 +537,76 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
             onCancelEdit={() => setEditingTodo(null)}
           />
 
+          {/* View toggle bar */}
+          <div className="view-toggle-bar">
+            {[
+              { key: 'list',     icon: <List size={15} />,        label: 'List' },
+              { key: 'kanban',   icon: <LayoutGrid size={15} />,   label: 'Board' },
+              { key: 'calendar', icon: <CalendarDays size={15} />, label: 'Calendar' },
+              { key: 'stats',    icon: <BarChart2 size={15} />,    label: 'Stats' },
+            ].map(({ key, icon, label }) => (
+              <button
+                key={key}
+                type="button"
+                className={`view-toggle-btn ${view === key ? 'active' : ''}`}
+                onClick={() => setView(key)}
+              >
+                {icon} {label}
+              </button>
+            ))}
+          </div>
+
           {/* Task List */}
-          <TodoList
-            todos={todos}
-            onToggleComplete={handleToggleComplete}
-            onEdit={(todo) => {
-              setEditingTodo(todo);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            onDelete={handleDeleteTodo}
-            onSendReminder={handleSendReminder}
-            onMute={handleMute}
-            onShiftDue={handleShiftDue}
-            onToggleSubtask={handleToggleSubtask}
-            onBulkComplete={handleBulkComplete}
-            onBulkDelete={handleBulkDelete}
-            filters={filters}
-            onFilterChange={setFilters}
-          />
+          {view === 'list' && (
+            <TodoList
+              todos={filters.tag && filters.tag !== 'all'
+                ? todos.filter(t => (t.tags || []).includes(filters.tag))
+                : todos}
+              onToggleComplete={handleToggleComplete}
+              onEdit={(todo) => {
+                setEditingTodo(todo);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              onDelete={handleDeleteTodo}
+              onSendReminder={handleSendReminder}
+              onMute={handleMute}
+              onShiftDue={handleShiftDue}
+              onToggleSubtask={handleToggleSubtask}
+              onBulkComplete={handleBulkComplete}
+              onBulkDelete={handleBulkDelete}
+              filters={filters}
+              onFilterChange={setFilters}
+            />
+          )}
+
+          {/* Kanban Board */}
+          {view === 'kanban' && (
+            <KanbanBoard
+              todos={todos}
+              onEdit={(todo) => {
+                setEditingTodo(todo);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              onDelete={handleDeleteTodo}
+              onMoveKanban={handleMoveKanban}
+            />
+          )}
+
+          {/* Calendar View */}
+          {view === 'calendar' && (
+            <CalendarView
+              todos={todos}
+              onEdit={(todo) => {
+                setEditingTodo(todo);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            />
+          )}
+
+          {/* Stats */}
+          {view === 'stats' && (
+            <StatsPanel todos={todos} activities={activities} />
+          )}
         </div>
 
         {/* Right Column: Activity Stream */}
