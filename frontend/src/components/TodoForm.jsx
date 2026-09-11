@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { PlusCircle, Check, X, Calendar, Flag, Tag, CheckSquare, Plus } from 'lucide-react';
+import { PlusCircle, Check, X, Calendar, Flag, Tag, CheckSquare, Plus, Repeat } from 'lucide-react';
 
 const TodoForm = ({ onSaveTodo, editingTodo, onCancelEdit }) => {
   const [title, setTitle] = useState('');
@@ -10,6 +10,7 @@ const TodoForm = ({ onSaveTodo, editingTodo, onCancelEdit }) => {
   const [tagInput, setTagInput] = useState('');
   const [subtasks, setSubtasks] = useState([]);
   const [subtaskInput, setSubtaskInput] = useState('');
+  const [recurrence, setRecurrence] = useState('none');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const titleRef = useRef(null);
@@ -31,6 +32,7 @@ const TodoForm = ({ onSaveTodo, editingTodo, onCancelEdit }) => {
       );
       setTags(editingTodo.tags || []);
       setSubtasks((editingTodo.subtasks || []).map(s => ({ title: s.title, completed: s.completed, _id: s._id })));
+      setRecurrence(editingTodo.recurrence || 'none');
     } else {
       resetForm();
     }
@@ -46,6 +48,7 @@ const TodoForm = ({ onSaveTodo, editingTodo, onCancelEdit }) => {
     setTagInput('');
     setSubtasks([]);
     setSubtaskInput('');
+    setRecurrence('none');
     setError('');
   };
 
@@ -98,6 +101,7 @@ const TodoForm = ({ onSaveTodo, editingTodo, onCancelEdit }) => {
         dueDate: dueDate || null,
         tags,
         subtasks,
+        recurrence,
       });
       if (!editingTodo) resetForm();
     } catch (err) {
@@ -238,6 +242,23 @@ const TodoForm = ({ onSaveTodo, editingTodo, onCancelEdit }) => {
               onChange={(e) => setDueDate(e.target.value)}
               disabled={loading}
             />
+          </div>
+
+          <div className="form-col">
+            <label className="input-label"><Repeat size={13} /> Repeat</label>
+            <div className="select-wrapper" style={{ position: 'relative' }}>
+              <select
+                className="custom-select"
+                value={recurrence}
+                onChange={(e) => setRecurrence(e.target.value)}
+                disabled={loading}
+              >
+                <option value="none">No repeat</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+            </div>
           </div>
         </div>
 

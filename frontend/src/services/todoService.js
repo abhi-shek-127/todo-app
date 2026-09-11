@@ -112,6 +112,18 @@ export const todoService = {
     return data.data;
   },
 
+  // Reorder todos (save custom order)
+  async reorderTodos(ids) {
+    const response = await fetch(`${API_URL}/todos/reorder`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ ids }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Failed to reorder');
+    return data;
+  },
+
   // Move task to a kanban column
   async moveKanban(id, status) {
     const response = await fetch(`${API_URL}/todos/${id}`, {

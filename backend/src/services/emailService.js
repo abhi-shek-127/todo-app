@@ -212,7 +212,64 @@ const sendPasswordResetEmail = async ({ to, name, resetUrl }) => {
   }
 };
 
+const sendWeeklySummaryEmail = async ({ to, name, completedTasks, dueTasks }) => {
+  try {
+    const appLink = process.env.APP_URL || 'https://todo-app-7ddz.onrender.com';
+    const completedRows = completedTasks.map(t =>
+      `<tr><td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;font-size:14px;color:#1e293b;">✅ ${t.title}</td><td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;font-size:13px;color:#64748b;text-align:right;">${t.priority}</td></tr>`
+    ).join('');
+    const dueRows = dueTasks.map(t => {
+      const due = t.dueDate ? new Date(t.dueDate).toLocaleDateString('en-US', { month:'short', day:'numeric' }) : 'No date';
+      const pColor = { high:'#ef4444', medium:'#f59e0b', low:'#10b981' }[t.priority] || '#64748b';
+      return `<tr><td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;font-size:14px;color:#1e293b;">📌 ${t.title}</td><td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;font-size:13px;color:${pColor};text-align:right;font-weight:600;">${due}</td></tr>`;
+    }).join('');
+
+    const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Weekly Summary</title></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:'Segoe UI',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:32px 16px;"><tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.10);">
+  <tr><td style="background:linear-gradient(135deg,#4f46e5,#7c3aed);padding:36px 40px;text-align:center;">
+    <div style="font-size:36px;margin-bottom:12px;">📊</div>
+    <h1 style="margin:0;color:#fff;font-size:24px;font-weight:800;">Your Weekly Summary</h1>
+    <p style="margin:6px 0 0;color:rgba(255,255,255,.85);font-size:14px;">TaskMaster — Week in Review</p>
+  </td></tr>
+  <tr><td style="padding:32px 40px;">
+    <p style="margin:0 0 24px;font-size:16px;color:#1e293b;">Hi ${name || 'there'} 👋 Here's how your week went:</p>
+    ${completedTasks.length > 0 ? `
+    <h3 style="margin:0 0 10px;font-size:15px;color:#10b981;font-weight:700;">✅ Completed Last Week (${completedTasks.length})</h3>
+    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin-bottom:24px;">
+      ${completedRows}
+    </table>` : '<p style="color:#64748b;font-size:14px;margin-bottom:24px;">No tasks completed last week.</p>'}
+    ${dueTasks.length > 0 ? `
+    <h3 style="margin:0 0 10px;font-size:15px;color:#4f46e5;font-weight:700;">📅 Due This Week (${dueTasks.length})</h3>
+    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin-bottom:24px;">
+      ${dueRows}
+    </table>` : '<p style="color:#64748b;font-size:14px;margin-bottom:24px;">No tasks due this week.</p>'}
+    <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
+      <a href="${appLink}" style="display:inline-block;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;text-decoration:none;font-size:15px;font-weight:700;padding:14px 36px;border-radius:10px;">Open TaskMaster →</a>
+    </td></tr></table>
+  </td></tr>
+  <tr><td style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:20px 40px;text-align:center;">
+    <p style="margin:0;font-size:12px;color:#94a3b8;">Sent by <strong style="color:#4f46e5;">TaskMaster</strong> every Monday morning</p>
+  </td></tr>
+</table></td></tr></table></body></html>`;
+
+    await sendViaBrevo({
+      to, toName: name,
+      from: process.env.BREVO_SENDER_EMAIL, fromName: 'TaskMaster',
+      subject: `📊 Your Weekly TaskMaster Summary — ${completedTasks.length} done, ${dueTasks.length} coming up`,
+      html, text: `Hi ${name},\n\nCompleted last week: ${completedTasks.length}\nDue this week: ${dueTasks.length}\n\nOpen TaskMaster: ${appLink}\n\n— TaskMaster`,
+    });
+    console.log(`[EmailService] ✅ Weekly summary sent to ${to}`);
+    return { success: true };
+  } catch (error) {
+    console.error('[EmailService] ❌ Weekly summary failed:', error.message);
+    throw error;
+  }
+};
+
 module.exports = {
   sendTaskReminderEmail,
   sendPasswordResetEmail,
+  sendWeeklySummaryEmail,
 };

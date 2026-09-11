@@ -14,6 +14,8 @@ import {
   ChevronDown,
   ChevronUp,
   Check,
+  GripVertical,
+  Repeat,
 } from 'lucide-react';
 
 const MUTE_OPTIONS = [
@@ -38,6 +40,7 @@ const TodoItem = ({
   bulkMode = false,
   selected = false,
   onBulkSelect,
+  dragHandleProps = null,
 }) => {
   const [showMuteMenu, setShowMuteMenu] = useState(false);
   const [showSubtasks, setShowSubtasks] = useState(false);
@@ -75,6 +78,11 @@ const TodoItem = ({
 
   return (
     <div className={`todo-item-card ${todo.completed ? 'completed' : ''} ${isOverdue ? 'overdue' : ''} ${selected ? 'bulk-selected' : ''}`}>
+      {dragHandleProps && (
+        <div className="drag-handle" {...dragHandleProps} title="Drag to reorder">
+          <GripVertical size={16} />
+        </div>
+      )}
       <div className="todo-main">
         {/* Bulk checkbox OR completion toggle */}
         {bulkMode ? (
@@ -104,6 +112,11 @@ const TodoItem = ({
           <div className="todo-title-row">
             <h4 className="todo-title">{todo.title}</h4>
             <span className={`badge badge-${todo.priority}`}>{todo.priority}</span>
+            {todo.recurrence && todo.recurrence !== 'none' && (
+              <span className="badge badge-recurrence" title={`Repeats ${todo.recurrence}`}>
+                <Repeat size={10} style={{ marginRight: 2 }} />{todo.recurrence}
+              </span>
+            )}
             {isMuted && (
               <span className="badge badge-muted" title={`Muted for ${formatMutedUntil(todo.mutedUntil)}`}>
                 <BellOff size={10} style={{ marginRight: 2 }} />

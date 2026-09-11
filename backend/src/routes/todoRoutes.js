@@ -11,6 +11,7 @@ const {
   shiftDue,
   toggleSubtask,
   bulkAction,
+  reorderTodos,
 } = require('../controllers/todoController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -23,6 +24,9 @@ router.route('/')
 
 // Bulk complete or delete (must be before /:id)
 router.post('/bulk', bulkAction);
+
+// Reorder todos (must be before /:id)
+router.put('/reorder', reorderTodos);
 
 router.route('/:id')
   .get(getTodoById)

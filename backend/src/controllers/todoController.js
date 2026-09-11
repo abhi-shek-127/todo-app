@@ -43,6 +43,8 @@ const getTodos = async (req, res) => {
       sortOptions = { priority: 1 };
     } else if (sortBy === 'title') {
       sortOptions = { title: 1 };
+    } else if (sortBy === 'custom') {
+      sortOptions = { order: 1, createdAt: -1 };
     }
 
     const todos = await Todo.find(query).sort(sortOptions);
@@ -95,7 +97,7 @@ const getTodoById = async (req, res) => {
 // @access  Private
 const createTodo = async (req, res) => {
   try {
-    const { title, description, priority, dueDate, tags, subtasks } = req.body;
+    const { title, description, priority, dueDate, tags, subtasks, recurrence } = req.body;
 
     if (!title || !title.trim()) {
       return res.status(400).json({
@@ -113,6 +115,7 @@ const createTodo = async (req, res) => {
       subtasks: Array.isArray(subtasks)
         ? subtasks.filter(s => s.title?.trim()).map(s => ({ title: s.title.trim(), completed: false }))
         : [],
+      recurrence: recurrence || 'none',
       user: req.user._id,
     });
 
@@ -161,21 +164,37 @@ const updateTodo = async (req, res) => {
 
     const wasCompleted = todo.completed;
 
-    const { title, description, completed, priority, dueDate, tags, subtasks, status } = req.body;
+    const { title, description, completed, priority, dueDate, tags, subtasks, status, recurrence } = req.body;
 
     if (title !== undefined) todo.title = title.trim();
     if (description !== undefined) todo.description = description.trim();
     if (tags !== undefined) todo.tags = Array.isArray(tags) ? tags.slice(0, 10) : [];
     if (subtasks !== undefined) todo.subtasks = subtasks;
     if (priority !== undefined) todo.priority = priority;
+    if (recurrence !== undefined) todo.recurrence = recurrence;
     // Sync completed <-> status
     if (status !== undefined && ['todo', 'inprogress', 'done'].includes(status)) {
       todo.status = status;
       todo.completed = status === 'done';
     } else if (completed !== undefined) {
+      const wasCompleted = todo.completed;
       todo.completed = Boolean(completed);
       if (todo.completed) todo.status = 'done';
       else if (todo.status === 'done') todo.status = 'todo';
+
+      // Auto-create next instance for recurring tasks
+      if (todo.completed && !wasCompleted && todo.recurrence !== 'none' && todo.dueDate) {
+        const nextDue = new Date(todo.dueDate);
+        if (todo.recurrence === 'daily') nextDue.setDate(nextDue.getDate() + 1);
+        else if (todo.recurrence === 'weekly') nextDue.setDate(nextDue.getDate() + 7);
+        else if (todo.recurrence === 'monthly') nextDue.setMonth(nextDue.getMonth() + 1);
+        try {
+          await Todo.create({
+            title: todo.title, description: todo.description, priority: todo.priority,
+            dueDate: nextDue, tags: todo.tags, recurrence: todo.recurrence, user: todo.user,
+          });
+        } catch (_) {}
+      }
     }
     if (dueDate !== undefined) {
       todo.dueDate = dueDate ? new Date(dueDate) : null;
@@ -413,6 +432,22 @@ const shiftDue = async (req, res) => {
   }
 };
 
+// @desc    Reorder todos by updating their order field
+// @route   PUT /api/todos/reorder
+// @access  Private
+const reorderTodos = async (req, res) => {
+  try {
+    const { ids } = req.body; // ordered array of IDs
+    if (!Array.isArray(ids)) return res.status(400).json({ success: false, message: 'ids array required' });
+    await Promise.all(
+      ids.map((id, index) => Todo.updateOne({ _id: id, user: req.user._id }, { order: index }))
+    );
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // @desc    Toggle a subtask completed state
 // @route   PATCH /api/todos/:id/subtasks/:subtaskId
 // @access  Private
@@ -478,4 +513,5 @@ module.exports = {
   shiftDue,
   toggleSubtask,
   bulkAction,
+  reorderTodos,
 };

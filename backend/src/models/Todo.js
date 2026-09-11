@@ -44,6 +44,11 @@ const todoSchema = new mongoose.Schema(
       enum: ['todo', 'inprogress', 'done'],
       default: 'todo',
     },
+    recurrence: {
+      type: String,
+      enum: ['none', 'daily', 'weekly', 'monthly'],
+      default: 'none',
+    },
     tags: {
       type: [String],
       default: [],

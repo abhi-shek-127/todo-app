@@ -22,6 +22,7 @@ import {
   CalendarDays,
   BarChart2,
   List,
+  Timer,
 } from 'lucide-react';
 import Logo from '../components/Logo';
 import ProfileModal from '../components/ProfileModal';
@@ -31,6 +32,7 @@ import TodoList from '../components/TodoList';
 import KanbanBoard from '../components/KanbanBoard';
 import CalendarView from '../components/CalendarView';
 import StatsPanel from '../components/StatsPanel';
+import PomodoroTimer from '../components/PomodoroTimer';
 import ActivityList from '../components/ActivityList';
 import todoService from '../services/todoService';
 import activityService from '../services/activityService';
@@ -63,6 +65,7 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
   const [showUsernameSetup, setShowUsernameSetup] = useState(!user?.username);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('tm-dark') === '1');
   const [view, setView] = useState('list'); // 'list' | 'kanban' | 'calendar' | 'stats'
+  const [showPomodoro, setShowPomodoro] = useState(false);
 
   // Apply / remove dark class on <html>
   useEffect(() => {
@@ -322,6 +325,16 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
     );
   };
 
+  // Reorder todos (drag & drop custom order)
+  const handleReorder = async (ids) => {
+    try {
+      await todoService.reorderTodos(ids);
+      await fetchTodos();
+    } catch (err) {
+      showNotification(err.message || 'Failed to save order', 'error');
+    }
+  };
+
   // Move a task to a different kanban column
   const handleMoveKanban = async (todo, status) => {
     try {
@@ -404,6 +417,16 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
               <span className="user-name">{user?.name || 'User'}</span>
               <span className="user-email">{user?.username ? `@${user.username}` : user?.email || ''}</span>
             </div>
+          </button>
+
+          <button
+            type="button"
+            className={`btn btn-sm pomodoro-nav-btn ${showPomodoro ? 'active' : ''}`}
+            onClick={() => setShowPomodoro(v => !v)}
+            title="Pomodoro Timer"
+          >
+            <Timer size={16} />
+            <span className="dark-toggle-label">Timer</span>
           </button>
 
           <button
@@ -575,6 +598,7 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
               onToggleSubtask={handleToggleSubtask}
               onBulkComplete={handleBulkComplete}
               onBulkDelete={handleBulkDelete}
+              onReorder={handleReorder}
               filters={filters}
               onFilterChange={setFilters}
             />
@@ -643,6 +667,11 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
           <span>Activity</span>
         </button>
       </nav>
+
+      {/* Pomodoro Timer */}
+      {showPomodoro && (
+        <PomodoroTimer todos={todos} onClose={() => setShowPomodoro(false)} />
+      )}
 
       {/* Profile Modal */}
       {showProfile && (

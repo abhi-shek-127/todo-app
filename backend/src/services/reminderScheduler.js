@@ -2,7 +2,8 @@ const cron = require('node-cron');
 const Todo = require('../models/Todo');
 const Activity = require('../models/Activity');
 const PushSubscription = require('../models/PushSubscription');
-const { sendTaskReminderEmail } = require('./emailService');
+const User = require('../models/User');
+const { sendTaskReminderEmail, sendWeeklySummaryEmail } = require('./emailService');
 const { sendPushNotification } = require('./pushService');
 
 const ONE_HOUR = 60 * 60 * 1000;
@@ -93,9 +94,37 @@ const checkAndSendReminders = async () => {
   }
 };
 
+const sendWeeklySummaries = async () => {
+  try {
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const sevenDaysAhead = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    const users = await User.find({ email: { $exists: true } });
+    for (const user of users) {
+      try {
+        const [completedTasks, dueTasks] = await Promise.all([
+          Todo.find({ user: user._id, completed: true, updatedAt: { $gte: sevenDaysAgo } }).select('title priority').lean(),
+          Todo.find({ user: user._id, completed: false, dueDate: { $gte: now, $lte: sevenDaysAhead } }).select('title priority dueDate').sort({ dueDate: 1 }).lean(),
+        ]);
+        if (completedTasks.length === 0 && dueTasks.length === 0) continue;
+        await sendWeeklySummaryEmail({ to: user.email, name: user.name, completedTasks, dueTasks });
+      } catch (err) {
+        console.error(`[WeeklySummary] Failed for ${user.email}:`, err.message);
+      }
+    }
+    console.log(`[WeeklySummary] Sent to ${users.length} user(s)`);
+  } catch (err) {
+    console.error('[WeeklySummary] Error:', err.message);
+  }
+};
+
 const initReminderScheduler = () => {
+  // Task reminders — every minute
   cron.schedule('* * * * *', () => { checkAndSendReminders(); });
-  console.log('[ReminderScheduler] Initialized — every 1h when ≤6h left, every 3h when ≤24h left.');
+  // Weekly summary — every Monday at 8 AM
+  cron.schedule('0 8 * * 1', () => { sendWeeklySummaries(); });
+  console.log('[ReminderScheduler] Initialized — reminders every min, weekly summary Mondays 8AM.');
   setTimeout(() => { checkAndSendReminders(); }, 5000);
 };
 

@@ -1,6 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import TodoItem from './TodoItem';
 import { Search, Filter, ArrowUpDown, CheckCircle2, X, MousePointerSquareDashed, CheckCheck, Trash2, Tag } from 'lucide-react';
+import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+// Sortable wrapper for each task row
+const SortableTodoItem = ({ todo, ...props }) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: todo._id });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.45 : 1,
+        zIndex: isDragging ? 50 : 'auto',
+        position: 'relative',
+      }}
+    >
+      <TodoItem {...props} todo={todo} dragHandleProps={{ ...attributes, ...listeners }} />
+    </div>
+  );
+};
 
 const TodoList = ({
   todos = [],
@@ -13,11 +35,28 @@ const TodoList = ({
   onToggleSubtask,
   onBulkComplete,
   onBulkDelete,
+  onReorder,
   filters,
   onFilterChange,
 }) => {
   const [bulkMode, setBulkMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
+
+  const isDragMode = filters.sortBy === 'custom' && !bulkMode;
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
+  );
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = todos.findIndex(t => t._id === active.id);
+    const newIndex = todos.findIndex(t => t._id === over.id);
+    const reordered = arrayMove(todos, oldIndex, newIndex);
+    onReorder?.(reordered.map(t => t._id));
+  };
 
   // Clear selection when todos list changes (after bulk action)
   useEffect(() => {
@@ -123,6 +162,7 @@ const TodoList = ({
               <option value="oldest">Oldest</option>
               <option value="dueDate">Due Date</option>
               <option value="title">A–Z</option>
+              <option value="custom">Custom Order ↕</option>
             </select>
           </div>
 
@@ -203,6 +243,26 @@ const TodoList = ({
                 : 'Add your first task above to get started.'}
             </p>
           </div>
+        ) : isDragMode ? (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={todos.map(t => t._id)} strategy={verticalListSortingStrategy}>
+              {todos.map((todo) => (
+                <SortableTodoItem
+                  key={todo._id}
+                  todo={todo}
+                  onToggleComplete={onToggleComplete}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                  onSendReminder={onSendReminder}
+                  onMute={onMute}
+                  onShiftDue={onShiftDue}
+                  onToggleSubtask={onToggleSubtask}
+                  bulkMode={false}
+                  selected={false}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
         ) : (
           todos.map((todo) => (
             <TodoItem
