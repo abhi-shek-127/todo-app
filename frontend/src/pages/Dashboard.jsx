@@ -410,9 +410,10 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
             type="button"
             className="btn btn-sm dark-toggle-btn"
             onClick={() => setDarkMode(v => !v)}
-            title={darkMode ? 'Switch to light mode (D)' : 'Switch to dark mode (D)'}
+            title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
           >
             {darkMode ? <Sun size={16} /> : <Moon size={16} />}
+            <span className="dark-toggle-label">{darkMode ? 'Light' : 'Dark'}</span>
           </button>
 
           {!isStandalone && (installPrompt || isIOS) && (

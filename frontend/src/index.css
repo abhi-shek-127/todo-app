@@ -2047,6 +2047,8 @@ html.dark .notification-toast { background: #1e293b; border-color: var(--border)
   transition: background 0.15s, color 0.15s;
 }
 .dark-toggle-btn:hover { background: var(--bg-main); color: var(--text-main); }
+.dark-toggle-label { font-size: 0.8rem; font-weight: 500; }
+@media (max-width: 480px) { .dark-toggle-label { display: none; } }
 
 /* =============================================
    TAGS
