@@ -72,7 +72,12 @@ const CalendarView = ({ todos, onEdit }) => {
         {cells.map((day, i) => {
           if (!day) return <div key={`e-${i}`} className="calendar-cell empty" />;
           const dayTodos = byDay[day] || [];
-          const hasOverdue = dayTodos.some((t) => !t.completed && new Date(t.dueDate) < today);
+          const todayMid = new Date(); todayMid.setHours(0, 0, 0, 0);
+          const hasOverdue = dayTodos.some((t) => {
+            if (t.completed) return false;
+            const due = new Date(t.dueDate); due.setHours(0, 0, 0, 0);
+            return due < todayMid;
+          });
           return (
             <div
               key={day}
