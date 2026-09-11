@@ -44,7 +44,9 @@ const sendTaskReminderEmail = async ({ to, name, taskTitle, description, dueDate
         })
       : null;
 
-    const isOverdue = dueDate && new Date(dueDate) < new Date();
+    const todayMid = new Date(); todayMid.setHours(0, 0, 0, 0);
+    const dueMid = dueDate ? new Date(dueDate) : null; if (dueMid) dueMid.setHours(0, 0, 0, 0);
+    const isOverdue = dueMid && dueMid < todayMid;
     const statusLabel = isOverdue ? '⚠️ OVERDUE' : '⏰ DUE SOON';
     const statusColor = isOverdue ? '#ef4444' : '#4f46e5';
 
