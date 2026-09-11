@@ -59,7 +59,12 @@ const KanbanBoard = ({ todos, onEdit, onDelete, onMoveKanban }) => {
 };
 
 const KanbanCard = ({ todo, currentStatus, moveTargets, onEdit, onDelete, onMove }) => {
-  const isOverdue = todo.dueDate && !todo.completed && new Date(todo.dueDate) < new Date();
+  const isOverdue = (() => {
+    if (!todo.dueDate || todo.completed) return false;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const due = new Date(todo.dueDate); due.setHours(0, 0, 0, 0);
+    return due < today;
+  })();
   const subtasks = todo.subtasks || [];
   const subtasksDone = subtasks.filter((s) => s.completed).length;
 

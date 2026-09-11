@@ -55,9 +55,12 @@ const TodoItem = ({
     return () => document.removeEventListener('mousedown', handler);
   }, [showMuteMenu]);
 
-  const isOverdue = !todo.dueDate || todo.completed
-    ? false
-    : new Date(todo.dueDate) < new Date();
+  const isOverdue = (() => {
+    if (!todo.dueDate || todo.completed) return false;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const due = new Date(todo.dueDate); due.setHours(0, 0, 0, 0);
+    return due < today;
+  })();
 
   const isMuted = !!(todo.mutedUntil && new Date(todo.mutedUntil) > new Date());
 

@@ -6,9 +6,12 @@ const StatsPanel = ({ todos, activities }) => {
     const total = todos.length;
     const completed = todos.filter((t) => t.completed).length;
     const pending = todos.filter((t) => !t.completed).length;
-    const overdue = todos.filter(
-      (t) => !t.completed && t.dueDate && new Date(t.dueDate) < new Date()
-    ).length;
+    const todayMid = new Date(); todayMid.setHours(0, 0, 0, 0);
+    const overdue = todos.filter((t) => {
+      if (t.completed || !t.dueDate) return false;
+      const due = new Date(t.dueDate); due.setHours(0, 0, 0, 0);
+      return due < todayMid;
+    }).length;
     const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
 
     // Completion streak — consecutive days (including today) with >= 1 completed activity
