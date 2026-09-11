@@ -38,7 +38,9 @@ const checkAndSendReminders = async () => {
 
       if (!shouldSend) continue;
 
-      const urgencyLabel = timeUntilDue <= 0
+      const todayMid = new Date(); todayMid.setHours(0, 0, 0, 0);
+      const dueMid = new Date(todo.dueDate); dueMid.setHours(0, 0, 0, 0);
+      const urgencyLabel = dueMid < todayMid
         ? 'OVERDUE'
         : timeUntilDue <= SIX_HOURS
           ? 'DUE SOON'
