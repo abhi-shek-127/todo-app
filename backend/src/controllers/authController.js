@@ -10,9 +10,8 @@ const USERNAME_RE = /^[a-z0-9_]+$/;
 
 // Helper to generate JWT
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'fallback_secret_key', {
-    expiresIn: '30d',
-  });
+  if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET environment variable is not set');
+  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 };
 
 // @desc    Register a new user

@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const dotenv = require('dotenv');
 const connectDB = require('./config/database');
 const { initReminderScheduler, checkAndSendReminders } = require('./services/reminderScheduler');
@@ -15,12 +17,50 @@ initReminderScheduler();
 
 const app = express();
 
-// Middleware
-app.use(cors());
+// Security headers
+app.use(helmet());
+
+// CORS — restrict to known origins only
+const allowedOrigins = [
+  process.env.APP_URL,
+  'http://localhost:3000',
+  'http://localhost:5173',
+].filter(Boolean);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (curl, Postman, mobile apps in standalone mode)
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Rate limiting — strict for sensitive auth endpoints, relaxed for others
+const authStrictLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many attempts. Please try again in 15 minutes.' },
+});
+
+const authGeneralLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many requests. Please slow down.' },
+});
+
 // API Routes
+app.use('/api/auth/login', authStrictLimiter);
+app.use('/api/auth/register', authStrictLimiter);
+app.use('/api/auth/forgot-password', authStrictLimiter);
+app.use('/api/auth', authGeneralLimiter);
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/todos', require('./routes/todoRoutes'));
 app.use('/api/activities', require('./routes/activityRoutes'));
