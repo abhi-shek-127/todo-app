@@ -28,7 +28,8 @@ app.use('/api', (req, res, next) => {
     'http://localhost:3000',
     'http://localhost:5173',
   ].filter(Boolean);
-  const selfOrigin = `${req.protocol}://${req.headers.host}`;
+  const proto = req.headers['x-forwarded-proto'] || req.protocol;
+  const selfOrigin = `${proto}://${req.headers.host}`;
   const allowed = [...staticOrigins, selfOrigin];
 
   cors({
