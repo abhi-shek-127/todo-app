@@ -87,8 +87,10 @@ const PomodoroTimer = ({ todos = [], onClose }) => {
     setShowSettings(true);
   };
 
-  const mins = String(Math.floor(timeLeft / 60)).padStart(2, '0');
+  const hours = Math.floor(timeLeft / 3600);
+  const mins = String(Math.floor((timeLeft % 3600) / 60)).padStart(2, '0');
   const secs = String(timeLeft % 60).padStart(2, '0');
+  const timeDisplay = hours > 0 ? `${hours}:${mins}:${secs}` : `${mins}:${secs}`;
   const totalSecs = customMins[mode] * 60;
   const progress = (totalSecs - timeLeft) / totalSecs;
   const r = 44;
@@ -125,7 +127,7 @@ const PomodoroTimer = ({ todos = [], onClose }) => {
 
       {minimized ? (
         <div className="pomodoro-mini" style={{ color: modeColor }}>
-          <span className="pomodoro-mini-time">{mins}:{secs}</span>
+          <span className="pomodoro-mini-time">{timeDisplay}</span>
           <span className="pomodoro-mini-mode">{MODES[mode].label}</span>
           {isRunning && <span className="pom-running-dot" style={{ background: modeColor }} />}
         </div>
@@ -210,7 +212,7 @@ const PomodoroTimer = ({ todos = [], onClose }) => {
               />
             </svg>
             <div className="pomodoro-time-overlay">
-              <span className="pomodoro-digits" style={{ color: modeColor }}>{mins}:{secs}</span>
+              <span className="pomodoro-digits" style={{ color: modeColor }}>{timeDisplay}</span>
               <span className="pomodoro-mode-label">{MODES[mode].label}</span>
             </div>
           </div>
