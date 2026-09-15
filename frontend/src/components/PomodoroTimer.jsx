@@ -72,9 +72,9 @@ const PomodoroTimer = ({ todos = [], onClose }) => {
 
   const handleSaveSettings = () => {
     const validated = {
-      focus:     Math.max(1, Math.min(99, Number(draftMins.focus)     || DEFAULT_MINS.focus),),
-      break:     Math.max(1, Math.min(99, Number(draftMins.break)     || DEFAULT_MINS.break)),
-      longBreak: Math.max(1, Math.min(99, Number(draftMins.longBreak) || DEFAULT_MINS.longBreak)),
+      focus:     Math.max(1, Math.min(480, Number(draftMins.focus)     || DEFAULT_MINS.focus)),
+      break:     Math.max(1, Math.min(480, Number(draftMins.break)     || DEFAULT_MINS.break)),
+      longBreak: Math.max(1, Math.min(480, Number(draftMins.longBreak) || DEFAULT_MINS.longBreak)),
     };
     setCustomMins(validated);
     setTimeLeft(validated[mode] * 60);
@@ -85,6 +85,14 @@ const PomodoroTimer = ({ todos = [], onClose }) => {
   const openSettings = () => {
     setDraftMins(customMins);
     setShowSettings(true);
+  };
+
+  const fmtMins = (m) => {
+    const v = Math.max(1, Number(m) || 1);
+    const h = Math.floor(v / 60);
+    const rem = v % 60;
+    if (h === 0) return `${rem}m`;
+    return rem === 0 ? `${h}h` : `${h}h ${rem}m`;
   };
 
   const hours = Math.floor(timeLeft / 3600);
@@ -153,9 +161,9 @@ const PomodoroTimer = ({ todos = [], onClose }) => {
             <div className="pom-settings-panel">
               <div className="pom-settings-title">Edit Timer Durations</div>
               {[
-                { key: 'focus',     label: 'Focus',       max: 99 },
-                { key: 'break',     label: 'Short Break', max: 99 },
-                { key: 'longBreak', label: 'Long Break',  max: 99 },
+                { key: 'focus',     label: 'Focus' },
+                { key: 'break',     label: 'Short Break' },
+                { key: 'longBreak', label: 'Long Break' },
               ].map(({ key, label }) => (
                 <div key={key} className="pom-settings-row">
                   <label className="pom-settings-label">{label}</label>
@@ -163,11 +171,12 @@ const PomodoroTimer = ({ todos = [], onClose }) => {
                     type="number"
                     className="pom-settings-input"
                     min="1"
-                    max="99"
+                    max="480"
                     value={draftMins[key]}
                     onChange={e => setDraftMins(d => ({ ...d, [key]: e.target.value }))}
                   />
                   <span className="pom-settings-unit">min</span>
+                  <span className="pom-settings-preview">{fmtMins(draftMins[key])}</span>
                 </div>
               ))}
               <div className="pom-settings-actions">
