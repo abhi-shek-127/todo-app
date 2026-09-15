@@ -17,24 +17,28 @@ initReminderScheduler();
 
 const app = express();
 
-// Security headers
-app.use(helmet());
+// Security headers — disable CSP so React/Vite SPA assets load correctly
+app.use(helmet({ contentSecurityPolicy: false }));
 
-// CORS — restrict to known origins only
-const allowedOrigins = [
-  process.env.APP_URL,
-  'http://localhost:3000',
-  'http://localhost:5173',
-].filter(Boolean);
+// CORS — applied to /api routes only; static files are same-origin and need no CORS
+// Origin is derived dynamically from the request Host header so no env var is required
+app.use('/api', (req, res, next) => {
+  const staticOrigins = [
+    process.env.APP_URL,
+    'http://localhost:3000',
+    'http://localhost:5173',
+  ].filter(Boolean);
+  const selfOrigin = `${req.protocol}://${req.headers.host}`;
+  const allowed = [...staticOrigins, selfOrigin];
 
-app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (curl, Postman, mobile apps in standalone mode)
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-    callback(new Error('Not allowed by CORS'));
-  },
-  credentials: true,
-}));
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowed.includes(origin)) return callback(null, true);
+      callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+  })(req, res, next);
+});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
