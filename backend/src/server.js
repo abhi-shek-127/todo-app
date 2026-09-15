@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const connectDB = require('./config/database');
-const { initReminderScheduler } = require('./services/reminderScheduler');
+const { initReminderScheduler, checkAndSendReminders } = require('./services/reminderScheduler');
 
 // Load environment variables
 dotenv.config();
@@ -33,6 +33,21 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
   });
+});
+
+// External cron trigger — called by cron-job.org every minute to run reminders
+// even when Render free tier would otherwise be spun down
+app.post('/api/internal/run-reminders', async (req, res) => {
+  const secret = req.headers['x-cron-secret'];
+  if (!process.env.INTERNAL_CRON_SECRET || secret !== process.env.INTERNAL_CRON_SECRET) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
+  try {
+    await checkAndSendReminders();
+    res.json({ success: true, ran: true, timestamp: new Date().toISOString() });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 const path = require('path');

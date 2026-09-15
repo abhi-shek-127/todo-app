@@ -239,6 +239,7 @@ const TodoForm = ({ onSaveTodo, editingTodo, onCancelEdit }) => {
               type="date"
               className="form-control date-input"
               value={dueDate}
+              min={new Date().toLocaleDateString('en-CA')}
               onChange={(e) => setDueDate(e.target.value)}
               disabled={loading}
             />
