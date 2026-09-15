@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Timer, X, Play, Pause, SkipForward, RotateCcw, Minimize2, Maximize2 } from 'lucide-react';
+import { Timer, X, Play, Pause, SkipForward, RotateCcw, Minimize2, Maximize2, Settings } from 'lucide-react';
 
 const MODES = {
-  focus:     { label: 'Focus',       minutes: 25, color: '#4f46e5' },
-  break:     { label: 'Short Break', minutes: 5,  color: '#10b981' },
-  longBreak: { label: 'Long Break',  minutes: 15, color: '#f59e0b' },
+  focus:     { label: 'Focus',       color: '#4f46e5' },
+  break:     { label: 'Short Break', color: '#10b981' },
+  longBreak: { label: 'Long Break',  color: '#f59e0b' },
 };
+
+const DEFAULT_MINS = { focus: 25, break: 5, longBreak: 15 };
 
 const playBeep = () => {
   try {
@@ -25,11 +27,14 @@ const playBeep = () => {
 
 const PomodoroTimer = ({ todos = [], onClose }) => {
   const [mode, setMode] = useState('focus');
-  const [timeLeft, setTimeLeft] = useState(MODES.focus.minutes * 60);
+  const [customMins, setCustomMins] = useState(DEFAULT_MINS);
+  const [timeLeft, setTimeLeft] = useState(DEFAULT_MINS.focus * 60);
   const [isRunning, setIsRunning] = useState(false);
   const [sessions, setSessions] = useState(0);
   const [minimized, setMinimized] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState('');
+  const [showSettings, setShowSettings] = useState(false);
+  const [draftMins, setDraftMins] = useState(DEFAULT_MINS);
   const intervalRef = useRef(null);
 
   const pendingTodos = todos.filter(t => !t.completed);
@@ -39,8 +44,8 @@ const PomodoroTimer = ({ todos = [], onClose }) => {
     clearInterval(intervalRef.current);
     setIsRunning(false);
     setMode(newMode);
-    setTimeLeft(MODES[newMode].minutes * 60);
-  }, []);
+    setTimeLeft(customMins[newMode] * 60);
+  }, [customMins]);
 
   useEffect(() => {
     if (!isRunning) { clearInterval(intervalRef.current); return; }
@@ -65,9 +70,26 @@ const PomodoroTimer = ({ todos = [], onClose }) => {
     return () => clearInterval(intervalRef.current);
   }, [isRunning, mode, sessions, switchMode]);
 
+  const handleSaveSettings = () => {
+    const validated = {
+      focus:     Math.max(1, Math.min(99, Number(draftMins.focus)     || DEFAULT_MINS.focus),),
+      break:     Math.max(1, Math.min(99, Number(draftMins.break)     || DEFAULT_MINS.break)),
+      longBreak: Math.max(1, Math.min(99, Number(draftMins.longBreak) || DEFAULT_MINS.longBreak)),
+    };
+    setCustomMins(validated);
+    setTimeLeft(validated[mode] * 60);
+    setIsRunning(false);
+    setShowSettings(false);
+  };
+
+  const openSettings = () => {
+    setDraftMins(customMins);
+    setShowSettings(true);
+  };
+
   const mins = String(Math.floor(timeLeft / 60)).padStart(2, '0');
   const secs = String(timeLeft % 60).padStart(2, '0');
-  const totalSecs = MODES[mode].minutes * 60;
+  const totalSecs = customMins[mode] * 60;
   const progress = (totalSecs - timeLeft) / totalSecs;
   const r = 44;
   const circumference = 2 * Math.PI * r;
@@ -87,6 +109,11 @@ const PomodoroTimer = ({ todos = [], onClose }) => {
           </div>
         </div>
         <div className="pomodoro-header-right">
+          {!minimized && (
+            <button type="button" className="pom-icon-btn" onClick={openSettings} title="Edit timer durations">
+              <Settings size={13} />
+            </button>
+          )}
           <button type="button" className="pom-icon-btn" onClick={() => setMinimized(v => !v)}>
             {minimized ? <Maximize2 size={13} /> : <Minimize2 size={13} />}
           </button>
@@ -118,6 +145,35 @@ const PomodoroTimer = ({ todos = [], onClose }) => {
               </button>
             ))}
           </div>
+
+          {/* Settings panel */}
+          {showSettings && (
+            <div className="pom-settings-panel">
+              <div className="pom-settings-title">Edit Timer Durations</div>
+              {[
+                { key: 'focus',     label: 'Focus',       max: 99 },
+                { key: 'break',     label: 'Short Break', max: 99 },
+                { key: 'longBreak', label: 'Long Break',  max: 99 },
+              ].map(({ key, label }) => (
+                <div key={key} className="pom-settings-row">
+                  <label className="pom-settings-label">{label}</label>
+                  <input
+                    type="number"
+                    className="pom-settings-input"
+                    min="1"
+                    max="99"
+                    value={draftMins[key]}
+                    onChange={e => setDraftMins(d => ({ ...d, [key]: e.target.value }))}
+                  />
+                  <span className="pom-settings-unit">min</span>
+                </div>
+              ))}
+              <div className="pom-settings-actions">
+                <button className="pom-settings-cancel" onClick={() => setShowSettings(false)}>Cancel</button>
+                <button className="pom-settings-save" onClick={handleSaveSettings}>Save</button>
+              </div>
+            </div>
+          )}
 
           {/* Task selector */}
           <select

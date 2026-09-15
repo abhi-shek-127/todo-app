@@ -360,6 +360,14 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
 
   // Shift due date ±1 day
   const handleShiftDue = async (todo, days) => {
+    if (days < 0 && todo.dueDate) {
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const due = new Date(todo.dueDate); due.setHours(0, 0, 0, 0);
+      if (due <= today) {
+        showNotification('Due Date is invalid!', 'error');
+        return;
+      }
+    }
     try {
       await todoService.shiftDue(todo._id, days);
       showNotification(days > 0 ? 'Task postponed by 1 day' : 'Task preponed by 1 day');

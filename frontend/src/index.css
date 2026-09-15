@@ -3008,6 +3008,74 @@ html.dark .badge-recurrence { background: #0c1a2e; color: #7dd3fc; }
 }
 .pom-mode-btn:hover { background: var(--bg-main); color: var(--text-main); }
 
+/* Settings panel */
+.pom-settings-panel {
+  margin: 10px 12px 0;
+  padding: 12px;
+  background: var(--bg-main);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.pom-settings-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 10px;
+}
+.pom-settings-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.pom-settings-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  flex: 1;
+}
+.pom-settings-input {
+  width: 52px;
+  padding: 4px 6px;
+  font-size: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card-bg);
+  color: var(--text-main);
+  text-align: center;
+}
+.pom-settings-unit {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+.pom-settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+.pom-settings-cancel {
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.pom-settings-save {
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  border: none;
+  border-radius: 6px;
+  background: #4f46e5;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 600;
+}
+.pom-settings-save:hover { background: #4338ca; }
+html.dark .pom-settings-panel { background: #0f172a; }
+html.dark .pom-settings-input { background: #1e293b; border-color: #334155; }
+
 .pom-task-select {
   display: block;
   width: calc(100% - 24px);

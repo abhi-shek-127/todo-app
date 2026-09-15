@@ -62,13 +62,6 @@ const TodoItem = ({
     return due < today;
   })();
 
-  // Prepone disabled when due date is today or earlier (would go to a past date)
-  const isPreponeDisabled = (() => {
-    if (!todo.dueDate) return false;
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    const due = new Date(todo.dueDate); due.setHours(0, 0, 0, 0);
-    return due <= today;
-  })();
 
   const isMuted = !!(todo.mutedUntil && new Date(todo.mutedUntil) > new Date());
 
@@ -197,7 +190,6 @@ const TodoItem = ({
                       className="shift-day-btn"
                       onClick={(e) => { e.stopPropagation(); onShiftDue(todo, -1); }}
                       title="Prepone by 1 day"
-                      disabled={isPreponeDisabled}
                     ><ChevronLeft size={12} /></button>
                     <button
                       type="button"
